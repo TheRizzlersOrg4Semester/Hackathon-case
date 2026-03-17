@@ -1,0 +1,67 @@
+"use server";
+
+import { z } from "zod";
+import { createDonationWithSimulatedPayment } from "@/lib/services/donations";
+
+const donationFormSchema = z.object({
+  amount: z.coerce.number().positive(),
+  donationType: z.enum(["ONE_TIME", "RECURRING"]).default("ONE_TIME"),
+  isAnonymous: z.boolean().default(false),
+  donorName: z.string().optional(),
+  donorEmail: z.string().optional()
+});
+
+export type DonationFormState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+  receiptNumber?: string;
+  paymentReference?: string;
+  thankYouTier?: string;
+};
+
+export async function submitDonationAction(
+  campaignId: string,
+  _prevState: DonationFormState,
+  formData: FormData
+): Promise<DonationFormState> {
+  const parsed = donationFormSchema.safeParse({
+    amount: formData.get("amount"),
+    donationType: formData.get("donationType"),
+    isAnonymous: formData.get("isAnonymous") === "on",
+    donorName: formData.get("donorName"),
+    donorEmail: formData.get("donorEmail")
+  });
+
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message: "Please review the donation form fields."
+    };
+  }
+
+  try {
+    const result = await createDonationWithSimulatedPayment({
+      campaignId,
+      amount: parsed.data.amount,
+      donationType: parsed.data.donationType,
+      isAnonymous: parsed.data.isAnonymous,
+      donorName: parsed.data.donorName,
+      donorEmail: parsed.data.donorEmail
+    });
+
+    return {
+      status: "success",
+      message: "Donation completed with simulated payment.",
+      receiptNumber: result.receiptNumber,
+      paymentReference: result.paymentReference,
+      thankYouTier: result.thankYouTier
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Donation could not be completed.";
+
+    return {
+      status: "error",
+      message
+    };
+  }
+}

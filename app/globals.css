@@ -1,0 +1,199 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+  background: #060d18;
+  color: #10231a;
+}
+
+a {
+  color: inherit;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.donor-blob {
+  position: absolute;
+  border: 0;
+  border-radius: 42% 58% 63% 37% / 44% 38% 62% 56%;
+  cursor: pointer;
+  opacity: 0.97;
+  overflow: hidden;
+  transition: box-shadow 220ms ease, opacity 220ms ease, filter 220ms ease;
+  box-shadow:
+    0 10px 28px rgba(7, 18, 32, 0.4),
+    inset 0 -10px 18px rgba(0, 0, 0, 0.12),
+    inset 0 10px 14px rgba(255, 255, 255, 0.15);
+}
+
+.donor-blob::before {
+  content: "";
+  position: absolute;
+  inset: 10% 12% auto auto;
+  width: 34%;
+  height: 34%;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.26);
+  filter: blur(1px);
+}
+
+.donor-blob:hover {
+  filter: saturate(1.08) brightness(1.03);
+  opacity: 1;
+}
+
+.donor-blob:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+.donor-blob.is-selected {
+  box-shadow:
+    0 0 0 3px rgba(191, 219, 254, 0.95),
+    0 12px 30px rgba(7, 18, 32, 0.45),
+    inset 0 -10px 18px rgba(0, 0, 0, 0.14),
+    inset 0 10px 14px rgba(255, 255, 255, 0.18);
+}
+
+.donor-blob.blob-a {
+  background: radial-gradient(circle at 30% 26%, #c9ffe9, #1bb67a 64%);
+}
+
+.donor-blob.blob-b {
+  background: radial-gradient(circle at 30% 26%, #dcf4ff, #3f9ce8 64%);
+}
+
+.donor-blob.blob-c {
+  background: radial-gradient(circle at 30% 26%, #ffefcf, #e79b3f 64%);
+}
+
+.donor-blob.blob-d {
+  background: radial-gradient(circle at 30% 26%, #ffe0e7, #e85e81 64%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .donor-blob {
+    transition: none;
+  }
+}
+
+.landing-hero {
+  background:
+    radial-gradient(circle at 14% 18%, rgba(94, 234, 212, 0.38), transparent 34%),
+    radial-gradient(circle at 85% 20%, rgba(125, 211, 252, 0.4), transparent 32%),
+    linear-gradient(140deg, #07111f 0%, #102942 52%, #18233f 100%);
+}
+
+.landing-hero-glow {
+  position: absolute;
+  inset: -40%;
+  background: conic-gradient(
+    from 200deg,
+    rgba(45, 212, 191, 0.15),
+    rgba(56, 189, 248, 0.1),
+    rgba(129, 140, 248, 0.14),
+    rgba(45, 212, 191, 0.15)
+  );
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+.landing-panel {
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: linear-gradient(140deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.74));
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(14px);
+}
+
+.landing-map-glow {
+  position: absolute;
+  inset: -30%;
+  background: radial-gradient(circle at 40% 60%, rgba(45, 212, 191, 0.22), transparent 54%);
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+.landing-map-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.32;
+  pointer-events: none;
+}
+
+.campaign-detail-hero {
+  background:
+    radial-gradient(circle at 14% 18%, rgba(94, 234, 212, 0.24), transparent 36%),
+    radial-gradient(circle at 88% 20%, rgba(125, 211, 252, 0.28), transparent 34%),
+    linear-gradient(140deg, #071220 0%, #0f2d45 50%, #1a2945 100%);
+}
+
+.campaign-detail-hero-glow {
+  position: absolute;
+  inset: -34%;
+  background: conic-gradient(
+    from 180deg,
+    rgba(45, 212, 191, 0.13),
+    rgba(56, 189, 248, 0.09),
+    rgba(129, 140, 248, 0.12),
+    rgba(45, 212, 191, 0.13)
+  );
+  filter: blur(36px);
+  pointer-events: none;
+}
+
+.campaign-stat-card {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.8rem 0.95rem;
+  backdrop-filter: blur(10px);
+}
+
+.campaign-stat-label {
+  color: rgba(226, 232, 240, 0.9);
+  font-size: 0.73rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.campaign-stat-value {
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 650;
+}
+
+.campaign-map-glow {
+  position: absolute;
+  inset: -30%;
+  background: radial-gradient(circle at 50% 55%, rgba(45, 212, 191, 0.2), transparent 56%);
+  filter: blur(24px);
+  pointer-events: none;
+}
+
+.campaign-map-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.07) 1px, transparent 1px);
+  background-size: 26px 26px;
+  opacity: 0.3;
+  pointer-events: none;
+}

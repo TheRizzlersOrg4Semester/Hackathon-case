@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CampaignStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum DonationType {
+  ONE_TIME
+  RECURRING
+}
+
+enum ThankYouTier {
+  BASIC
+  PERSONAL
+  FOLLOW_UP
+}
+
+enum EmailStatus {
+  PENDING
+  TRIGGERED
+  SENT
+  FAILED
+}
+
+model Campaign {
+  id          String         @id @default(cuid())
+  title       String
+  slug        String         @unique
+  summary     String?
+  description String?
+  goalAmount  Decimal        @db.Decimal(12, 2)
+  status      CampaignStatus @default(DRAFT)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  publishedAt DateTime?
+  closedAt    DateTime?
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  donations Donation[]
+
+  @@index([status])
+  @@index([categoryId])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaigns Campaign[]
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  displayName String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  donations   Donation[]
+  auditEvents AuditEvent[]
+}
+
+model Donation {
+  id             String       @id @default(cuid())
+  campaignId     String
+  userId         String?
+  amount         Decimal      @db.Decimal(12, 2)
+  donorName      String?
+  donorEmail     String?
+  isAnonymous    Boolean      @default(false)
+  donationType   DonationType @default(ONE_TIME)
+  donorMessage   String?
+  createdAt      DateTime     @default(now())
+
+  campaign       Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user           User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  receipt        DonationReceipt?
+  thankYouAction ThankYouAction?
+
+  @@index([campaignId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model DonationReceipt {
+  id            String   @id @default(cuid())
+  donationId    String   @unique
+  receiptNumber String   @unique
+  issuedAt      DateTime @default(now())
+  totalAmount   Decimal  @db.Decimal(12, 2)
+
+  donation Donation @relation(fields: [donationId], references: [id], onDelete: Cascade)
+}
+
+model ThankYouAction {
+  id           String      @id @default(cuid())
+  donationId   String      @unique
+  tier         ThankYouTier
+  emailStatus  EmailStatus @default(PENDING)
+  triggeredAt  DateTime?
+  createdAt    DateTime    @default(now())
+
+  donation Donation @relation(fields: [donationId], references: [id], onDelete: Cascade)
+}
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  eventType  String
+  entityType String
+  entityId   String
+  actorUserId String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  actorUser User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([eventType, createdAt])
+}
+
+// Optional for future analytics/reporting:
+// model CampaignProgressSnapshot {
+//   id          String   @id @default(cuid())
+//   campaignId  String
+//   totalRaised Decimal  @db.Decimal(12, 2)
+//   donorCount  Int
+//   capturedAt  DateTime @default(now())
+// }
