@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PropsWithChildren } from "react";
 import LiquidEther from "@/components/LiquidEther";
+import { GooeyNav } from "@/components/gooey-nav";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -38,15 +39,16 @@ export function AppShell({ children }: PropsWithChildren) {
             PulseFund
           </Link>
           <nav aria-label="Main navigation">
-            <ul className="flex gap-6 text-sm text-slate-200">
-              {navLinks.map((link) => (
-                <li key={link.href}>
-                  <Link className="hover:text-white hover:underline focus:text-white focus:underline" href={link.href}>
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <GooeyNav
+              items={navLinks}
+              particleCount={15}
+              particleDistances={[90, 10]}
+              particleR={100}
+              initialActiveIndex={0}
+              animationTime={600}
+              timeVariance={300}
+              colors={[1, 2, 3, 1, 2, 3, 1, 4]}
+            />
           </nav>
         </div>
       </header>
