@@ -6,8 +6,9 @@ import { GooeyNav } from "@/components/gooey-nav";
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/campaigns", label: "Campaigns" },
+  { href: "/request-campaign", label: "Request Campaign" },
   { href: "/history/user", label: "My Donations" },
-  { href: "/admin/campaigns", label: "Admin" }
+  { href: "/admin", label: "Admin" }
 ];
 
 export function AppShell({ children }: PropsWithChildren) {

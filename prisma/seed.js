@@ -4,6 +4,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   await prisma.auditEvent.deleteMany();
+  await prisma.campaignRequest.deleteMany();
   await prisma.thankYouAction.deleteMany();
   await prisma.donationReceipt.deleteMany();
   await prisma.donation.deleteMany();
@@ -201,6 +202,33 @@ async function main() {
         entityType: "donation",
         entityId: donations[0].id,
         metadata: { channel: "seed", amountBand: "1000_plus" }
+      }
+    ]
+  });
+
+  await prisma.campaignRequest.createMany({
+    data: [
+      {
+        requesterName: "Nora Pedersen",
+        requesterEmail: "nora.pedersen@example.com",
+        title: "After-school Robotics Lab",
+        category: "Education",
+        summary: "Launch a neighborhood robotics lab for teens.",
+        description:
+          "We need starter kits, spare parts, and weekly mentor time to run a free robotics lab for 40 local students.",
+        goalAmount: 65000,
+        motivation: "Hands-on STEM access is still limited in our area and this lab can close that gap quickly."
+      },
+      {
+        requesterName: "Jonas Madsen",
+        requesterEmail: "jonas.madsen@example.com",
+        title: "Rain Garden for Schoolyard",
+        category: "Environment",
+        summary: "Build rain gardens to reduce flooding in a schoolyard.",
+        description:
+          "This project funds design support, soil work, and native plants to handle stormwater and improve local biodiversity.",
+        goalAmount: 42000,
+        motivation: "Students can help maintain the site and learn climate adaptation in practice."
       }
     ]
   });
