@@ -15,6 +15,25 @@ type GlobalDonationBlobMapProps = {
   donations: LandingDonation[];
 };
 
+type DragState = {
+  blobId: string;
+  pointerId: number;
+  pointerOffsetX: number;
+  pointerOffsetY: number;
+  startPointerX: number;
+  startPointerY: number;
+  lastPointerX: number;
+  lastPointerY: number;
+  lastTimestamp: number;
+  velocityX: number;
+  velocityY: number;
+  moved: boolean;
+};
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("da-DK", {
     style: "currency",
@@ -42,6 +61,8 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
   const containerRef = useRef<HTMLDivElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastTimestampRef = useRef<number | null>(null);
+  const dragStateRef = useRef<DragState | null>(null);
+  const clickSuppressionRef = useRef<string | null>(null);
 
   const currentId = selectedId ?? activeId;
   const focusedBlob = blobs.find((blob) => blob.id === currentId) ?? blobs[0];
@@ -110,6 +131,109 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
     };
   }, [motionStates.length, reducedMotion]);
 
+  const updateDraggedBlobPosition = (
+    blobId: string,
+    clientX: number,
+    clientY: number,
+    velocityX?: number,
+    velocityY?: number
+  ) => {
+    if (!containerRef.current) {
+      return;
+    }
+
+    const rect = containerRef.current.getBoundingClientRect();
+    setMotionStates((previous) =>
+      previous.map((state) => {
+        if (state.id !== blobId) {
+          return state;
+        }
+
+        const x = clamp(clientX - rect.left, state.edgePadding, rect.width - state.edgePadding);
+        const y = clamp(clientY - rect.top, state.edgePadding, rect.height - state.edgePadding);
+        return {
+          ...state,
+          x,
+          y,
+          vx: velocityX ?? 0,
+          vy: velocityY ?? 0
+        };
+      })
+    );
+  };
+
+  useEffect(() => {
+    const handlePointerMove = (event: PointerEvent) => {
+      const dragState = dragStateRef.current;
+      if (!dragState || event.pointerId !== dragState.pointerId) {
+        return;
+      }
+
+      event.preventDefault();
+
+      const now = event.timeStamp || performance.now();
+      const dt = Math.max((now - dragState.lastTimestamp) / 1000, 0.001);
+      const nextPointerX = event.clientX;
+      const nextPointerY = event.clientY;
+      const rawVelocityX = (nextPointerX - dragState.lastPointerX) / dt;
+      const rawVelocityY = (nextPointerY - dragState.lastPointerY) / dt;
+
+      dragState.velocityX = rawVelocityX * 0.28;
+      dragState.velocityY = rawVelocityY * 0.28;
+      dragState.lastPointerX = nextPointerX;
+      dragState.lastPointerY = nextPointerY;
+      dragState.lastTimestamp = now;
+
+      if (
+        !dragState.moved &&
+        Math.hypot(nextPointerX - dragState.startPointerX, nextPointerY - dragState.startPointerY) > 6
+      ) {
+        dragState.moved = true;
+      }
+
+      updateDraggedBlobPosition(
+        dragState.blobId,
+        nextPointerX - dragState.pointerOffsetX,
+        nextPointerY - dragState.pointerOffsetY
+      );
+    };
+
+    const finishDrag = (pointerId: number) => {
+      const dragState = dragStateRef.current;
+      if (!dragState || dragState.pointerId !== pointerId) {
+        return;
+      }
+
+      updateDraggedBlobPosition(
+        dragState.blobId,
+        dragState.lastPointerX - dragState.pointerOffsetX,
+        dragState.lastPointerY - dragState.pointerOffsetY,
+        dragState.velocityX,
+        dragState.velocityY
+      );
+
+      if (dragState.moved) {
+        clickSuppressionRef.current = dragState.blobId;
+      }
+
+      dragStateRef.current = null;
+    };
+
+    const handleWindowPointerUp = (event: PointerEvent) => {
+      finishDrag(event.pointerId);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handleWindowPointerUp);
+    window.addEventListener("pointercancel", handleWindowPointerUp);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handleWindowPointerUp);
+      window.removeEventListener("pointercancel", handleWindowPointerUp);
+    };
+  }, []);
+
   if (blobs.length === 0) {
     return (
       <section className="landing-panel space-y-3">
@@ -144,6 +268,7 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
         >
           {blobs.map((blob, index) => {
             const motionState = motionStates[index];
+            const isDragging = dragStateRef.current?.blobId === blob.id;
             const fallbackStyle = {
               left: `${blob.leftPercent}%`,
               top: `${blob.topPercent}%`,
@@ -152,32 +277,76 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
             const render = motionState ? getBlobRenderStyle(motionState) : null;
 
             const motionStyle =
-              motionState && !reducedMotion
+              motionState && !reducedMotion && !isDragging
                 ? {
                     left: `${render!.leftPercent}px`,
                     top: `${render!.topPercent}px`,
                     transform: `translate(calc(-50% + ${render!.orbitX}px), calc(-50% + ${render!.orbitY}px)) rotate(${render!.rotationDeg}deg) scale(${render!.scale})`
                   }
-                : fallbackStyle;
+                : motionState
+                  ? {
+                      left: `${motionState.x}px`,
+                      top: `${motionState.y}px`,
+                      transform: "translate(-50%, -50%)"
+                    }
+                  : fallbackStyle;
 
             return (
             <button
               aria-label={`${blob.donorDisplayName}, ${formatCurrency(blob.amount)}, ${formatDonationType(blob.donationType)}, ${blob.campaignTitle}`}
               aria-pressed={selectedId === blob.id}
-              className={`donor-blob ${blob.colorClass} ${selectedId === blob.id ? "is-selected" : ""}`}
+              className={`donor-blob ${blob.colorClass} ${selectedId === blob.id ? "is-selected" : ""} ${isDragging ? "is-dragging" : ""}`}
               key={blob.id}
               onBlur={() => {
                 if (!selectedId) {
                   setActiveId(null);
                 }
               }}
-              onClick={() => setSelectedId((prev) => (prev === blob.id ? null : blob.id))}
+              onClick={() => {
+                if (clickSuppressionRef.current === blob.id) {
+                  clickSuppressionRef.current = null;
+                  return;
+                }
+
+                setSelectedId((prev) => (prev === blob.id ? null : blob.id));
+              }}
               onFocus={() => setActiveId(blob.id)}
               onMouseEnter={() => setActiveId(blob.id)}
               onMouseLeave={() => {
                 if (!selectedId) {
                   setActiveId(null);
                 }
+              }}
+              onPointerDown={(event) => {
+                if (!containerRef.current) {
+                  return;
+                }
+
+                const rect = containerRef.current.getBoundingClientRect();
+                const state = motionStates[index];
+                const centerX = rect.left + (state?.x ?? (blob.leftPercent / 100) * rect.width);
+                const centerY = rect.top + (state?.y ?? (blob.topPercent / 100) * rect.height);
+
+                dragStateRef.current = {
+                  blobId: blob.id,
+                  pointerId: event.pointerId,
+                  pointerOffsetX: event.clientX - centerX,
+                  pointerOffsetY: event.clientY - centerY,
+                  startPointerX: event.clientX,
+                  startPointerY: event.clientY,
+                  lastPointerX: event.clientX,
+                  lastPointerY: event.clientY,
+                  lastTimestamp: event.timeStamp || performance.now(),
+                  velocityX: 0,
+                  velocityY: 0,
+                  moved: false
+                };
+
+                clickSuppressionRef.current = null;
+                setActiveId(blob.id);
+                updateDraggedBlobPosition(blob.id, centerX, centerY, 0, 0);
+                event.preventDefault();
+                event.currentTarget.setPointerCapture(event.pointerId);
               }}
               style={{
                 ...motionStyle,
