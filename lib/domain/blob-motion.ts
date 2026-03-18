@@ -10,6 +10,8 @@ export type BlobMotionState = {
   y: number;
   vx: number;
   vy: number;
+  excitement: number;
+  momentumHold: number;
   phase: number;
   phaseSpeed: number;
   pulseAmplitude: number;
@@ -37,6 +39,14 @@ export type MotionBounds = {
 
 const MIN_CONTAINER_WIDTH = 280;
 const MIN_CONTAINER_HEIGHT = 220;
+const BASE_EXCITEMENT = 1;
+const IDLE_CHAOS = 0.18;
+const CROWD_SWIRL = 14;
+const EDGE_REPEL_DISTANCE = 84;
+const EDGE_REPEL_FORCE = 220;
+const NEAR_BUMP_FACTOR = 1.34;
+const NEAR_BUMP_FORCE = 12;
+const MIN_BOUNCE_SPEED = 110;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -108,6 +118,8 @@ export function createInitialBlobMotionStates(seeds: BlobMotionSeed[], bounds: M
       y: point.y,
       vx: Math.cos(direction) * baseSpeed,
       vy: Math.sin(direction) * baseSpeed,
+      excitement: BASE_EXCITEMENT,
+      momentumHold: 0,
       phase: getRandomFromSeed(seed.id, "phase") * Math.PI * 2,
       phaseSpeed: 0.8 + getRandomFromSeed(seed.id, "phaseSpeed") * 0.8,
       pulseAmplitude: 0.012 + getRandomFromSeed(seed.id, "pulseAmplitude") * 0.022,
@@ -141,6 +153,7 @@ function applyHydrophobicRepulsion(states: BlobMotionState[], dt: number) {
       const dy = b.y - a.y;
       const distance = Math.hypot(dx, dy) || 0.001;
       const minDistance = (a.sizePx + b.sizePx) * 0.52;
+      const nearDistance = minDistance * NEAR_BUMP_FACTOR;
 
       if (distance < minDistance) {
         const overlap = minDistance - distance;
@@ -149,6 +162,8 @@ function applyHydrophobicRepulsion(states: BlobMotionState[], dt: number) {
         const invMassA = 1 / Math.max(a.sizePx, 1);
         const invMassB = 1 / Math.max(b.sizePx, 1);
         const invMassSum = invMassA + invMassB || 1;
+        const tangentX = -ny;
+        const tangentY = nx;
 
         // Positional correction keeps blobs from visually sitting inside each other.
         const correction = overlap * 0.9;
@@ -162,12 +177,16 @@ function applyHydrophobicRepulsion(states: BlobMotionState[], dt: number) {
         const rvy = b.vy - a.vy;
         const normalVelocity = rvx * nx + rvy * ny;
         if (normalVelocity < 0) {
-          const restitution = 0.92;
+          const sharedExcitement = Math.max(a.excitement, b.excitement);
+          const restitution = Math.min(1.02, 0.9 + Math.max(sharedExcitement - 1, 0) * 0.03);
           const impulse = (-(1 + restitution) * normalVelocity) / invMassSum;
           a.vx -= impulse * nx * invMassA;
           a.vy -= impulse * ny * invMassA;
           b.vx += impulse * nx * invMassB;
           b.vy += impulse * ny * invMassB;
+          const boostedExcitement = clamp(sharedExcitement + 0.05, BASE_EXCITEMENT, 4.8);
+          a.excitement = boostedExcitement;
+          b.excitement = boostedExcitement;
         }
 
         // Continuous repulsion keeps near-touches from clumping.
@@ -176,8 +195,58 @@ function applyHydrophobicRepulsion(states: BlobMotionState[], dt: number) {
         a.vy -= ny * repel * (invMassA / invMassSum);
         b.vx += nx * repel * (invMassB / invMassSum);
         b.vy += ny * repel * (invMassB / invMassSum);
+
+        const swirl = (0.4 + Math.max(a.excitement, b.excitement) * 0.22) * dt * CROWD_SWIRL;
+        a.vx -= tangentX * swirl * invMassA;
+        a.vy -= tangentY * swirl * invMassA;
+        b.vx += tangentX * swirl * invMassB;
+        b.vy += tangentY * swirl * invMassB;
+      } else if (distance < nearDistance) {
+        const nx = dx / distance;
+        const ny = dy / distance;
+        const tangentX = -ny;
+        const tangentY = nx;
+        const closeness = 1 - (distance - minDistance) / (nearDistance - minDistance);
+        const swirl = closeness * dt * NEAR_BUMP_FORCE;
+
+        a.vx -= nx * swirl * 10;
+        a.vy -= ny * swirl * 10;
+        b.vx += nx * swirl * 10;
+        b.vy += ny * swirl * 10;
+
+        a.vx -= tangentX * swirl * 4;
+        a.vy -= tangentY * swirl * 4;
+        b.vx += tangentX * swirl * 4;
+        b.vy += tangentY * swirl * 4;
       }
     }
+  }
+}
+
+function applyEdgeRepulsion(state: BlobMotionState, width: number, height: number, dt: number) {
+  const leftDistance = state.x - state.edgePadding;
+  const rightDistance = width - state.edgePadding - state.x;
+  const topDistance = state.y - state.edgePadding;
+  const bottomDistance = height - state.edgePadding - state.y;
+
+  if (leftDistance < EDGE_REPEL_DISTANCE) {
+    const strength = (1 - leftDistance / EDGE_REPEL_DISTANCE) * EDGE_REPEL_FORCE * dt;
+    state.vx += strength;
+  }
+
+  if (rightDistance < EDGE_REPEL_DISTANCE) {
+    const strength = (1 - rightDistance / EDGE_REPEL_DISTANCE) * EDGE_REPEL_FORCE * dt;
+    state.vx -= strength;
+  }
+
+  if (topDistance < EDGE_REPEL_DISTANCE) {
+    const strength = (1 - topDistance / EDGE_REPEL_DISTANCE) * EDGE_REPEL_FORCE * dt;
+    state.vy += strength;
+  }
+
+  if (bottomDistance < EDGE_REPEL_DISTANCE) {
+    const strength = (1 - bottomDistance / EDGE_REPEL_DISTANCE) * EDGE_REPEL_FORCE * dt;
+    state.vy -= strength;
   }
 }
 
@@ -186,21 +255,31 @@ function keepBlobInBounds(state: BlobMotionState, width: number, height: number)
   const maxX = width - state.edgePadding;
   const minY = state.edgePadding;
   const maxY = height - state.edgePadding;
+  const bounce = clamp(0.98 + (state.excitement - 1) * 0.1, 0.98, 1.16);
+  const spinKick = 0.18 * state.excitement;
 
   if (state.x < minX) {
     state.x = minX;
-    state.vx = Math.abs(state.vx) * 0.9;
+    state.vx = Math.max(Math.abs(state.vx) * bounce, MIN_BOUNCE_SPEED);
+    state.vy += spinKick * Math.sign(state.vy || 1) * 18;
+    state.excitement = clamp(state.excitement + 0.45, BASE_EXCITEMENT, 4.8);
   } else if (state.x > maxX) {
     state.x = maxX;
-    state.vx = -Math.abs(state.vx) * 0.9;
+    state.vx = -Math.max(Math.abs(state.vx) * bounce, MIN_BOUNCE_SPEED);
+    state.vy += spinKick * Math.sign(state.vy || -1) * 18;
+    state.excitement = clamp(state.excitement + 0.45, BASE_EXCITEMENT, 4.8);
   }
 
   if (state.y < minY) {
     state.y = minY;
-    state.vy = Math.abs(state.vy) * 0.9;
+    state.vy = Math.max(Math.abs(state.vy) * bounce, MIN_BOUNCE_SPEED);
+    state.vx += spinKick * Math.sign(state.vx || -1) * 18;
+    state.excitement = clamp(state.excitement + 0.45, BASE_EXCITEMENT, 4.8);
   } else if (state.y > maxY) {
     state.y = maxY;
-    state.vy = -Math.abs(state.vy) * 0.9;
+    state.vy = -Math.max(Math.abs(state.vy) * bounce, MIN_BOUNCE_SPEED);
+    state.vx += spinKick * Math.sign(state.vx || 1) * 18;
+    state.excitement = clamp(state.excitement + 0.45, BASE_EXCITEMENT, 4.8);
   }
 }
 
@@ -218,8 +297,10 @@ export function stepBlobMotionStates(
   applyHydrophobicRepulsion(states, dt);
 
   for (const state of states) {
-    const maxSpeed = getSpeedForBlob(state.sizePx);
+    const excitement = clamp(state.excitement, BASE_EXCITEMENT, 4.8);
+    const maxSpeed = getSpeedForBlob(state.sizePx) * excitement;
     const t = state.phase;
+    const holdRatio = clamp(state.momentumHold / 2, 0, 1);
 
     // Flow-field-style steering creates softer, less scheduled motion.
     const flowX =
@@ -230,16 +311,33 @@ export function stepBlobMotionStates(
       0.5 * Math.sin(state.y * 0.01 - t * 0.52 + state.orbitPhase);
     const curveX = Math.sin(t * 0.63 + state.orbitPhase) * state.curveBias;
     const curveY = Math.cos(t * 0.57 + state.orbitPhase * 0.9) * state.driftBias;
+    const chaosX =
+      Math.sin(t * (1.6 + state.phaseSpeed) + state.noiseOffset * 1.7) *
+      (0.45 + state.excitement * IDLE_CHAOS);
+    const chaosY =
+      Math.cos(t * (1.45 + state.phaseSpeed) + state.noiseOffset * 1.3) *
+      (0.45 + state.excitement * IDLE_CHAOS);
     state.vx += (flowX * 0.82 + curveX) * dt * 7.4;
     state.vy += (flowY * 0.82 + curveY) * dt * 7.4;
+    state.vx += chaosX * dt * 12;
+    state.vy += chaosY * dt * 12;
+
+    const crowdPullX = Math.cos(t * 0.48 + state.orbitPhase) * (state.excitement - 0.8);
+    const crowdPullY = Math.sin(t * 0.52 + state.orbitPhase * 0.8) * (state.excitement - 0.8);
+    state.vx += crowdPullX * dt * 4.6;
+    state.vy += crowdPullY * dt * 4.6;
+    applyEdgeRepulsion(state, width, height, dt);
 
     // Gentle damping keeps motion smooth and prevents runaway velocity.
-    state.vx *= 0.992;
-    state.vy *= 0.992;
+    const damping = clamp(0.996 - (excitement - 1) * 0.0015, 0.989, 0.996);
+    const heldDamping = 1 - (1 - damping) * (1 - holdRatio * 0.94);
+    state.vx *= heldDamping;
+    state.vy *= heldDamping;
 
     const speed = Math.hypot(state.vx, state.vy) || 0.001;
-    if (speed > maxSpeed) {
-      const ratio = maxSpeed / speed;
+    const heldMaxSpeed = maxSpeed * (1 + holdRatio * 2.6);
+    if (speed > heldMaxSpeed) {
+      const ratio = heldMaxSpeed / speed;
       state.vx *= ratio;
       state.vy *= ratio;
     }
@@ -247,6 +345,8 @@ export function stepBlobMotionStates(
     state.x += state.vx * dt;
     state.y += state.vy * dt;
     keepBlobInBounds(state, width, height);
+    state.excitement = clamp(state.excitement - dt * 0.36, BASE_EXCITEMENT, 4.8);
+    state.momentumHold = Math.max(0, state.momentumHold - dt);
     state.phase += dt * state.phaseSpeed;
   }
 
