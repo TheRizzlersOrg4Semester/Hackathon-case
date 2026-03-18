@@ -35,6 +35,26 @@ const donations = [
 ];
 
 describe("DonorBlobVisualization", () => {
+  it("caps animated campaign blobs while keeping full fallback table coverage", () => {
+    const manyDonations = Array.from({ length: 36 }, (_, index) => ({
+      id: `d-${index + 1}`,
+      amount: 100 + index * 10,
+      donorName: `Donor ${index + 1}`,
+      isAnonymous: false,
+      donationType: (index % 2 === 0 ? "ONE_TIME" : "RECURRING") as const,
+      blobColor: null,
+      campaignImageUrl: null,
+      campaignTitle: "Campaign A",
+      createdAt: new Date(`2026-03-17T${String(index % 24).padStart(2, "0")}:00:00Z`)
+    }));
+
+    render(<DonorBlobVisualization donations={manyDonations} />);
+
+    const table = screen.getByRole("table");
+    expect(screen.getAllByRole("button")).toHaveLength(30);
+    expect(within(table).getAllByRole("row")).toHaveLength(manyDonations.length + 1);
+  });
+
   it("renders fallback table rows for all donations", () => {
     render(<DonorBlobVisualization donations={donations} />);
 

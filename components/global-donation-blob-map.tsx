@@ -40,6 +40,7 @@ const MAX_THROW_SPEED = 1200;
 const SPLASH_RADIUS = 260;
 const SPLASH_FORCE = 380;
 const MOMENTUM_HOLD_SECONDS = 2.2;
+const MAX_GLOBAL_BLOBS = 42;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -65,7 +66,8 @@ function formatTimestamp(date: Date): string {
 }
 
 export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps) {
-  const blobs = useMemo(() => mapGlobalDonationBlobs(donations), [donations]);
+  const allBlobs = useMemo(() => mapGlobalDonationBlobs(donations), [donations]);
+  const blobs = useMemo(() => allBlobs.slice(0, MAX_GLOBAL_BLOBS), [allBlobs]);
   const campaignIdentityItems = useMemo(() => {
     const seen = new Set<string>();
     const items: Array<{ slug: string; title: string; imageUrl: string | null }> = [];
@@ -92,6 +94,8 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
   const containerRef = useRef<HTMLDivElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastTimestampRef = useRef<number | null>(null);
+  const boundsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
+  const offsetRef = useRef<{ left: number; top: number }>({ left: 0, top: 0 });
   const dragStateRef = useRef<DragState | null>(null);
   const clickSuppressionRef = useRef<string | null>(null);
   const [campaignImageErrors, setCampaignImageErrors] = useState<Record<string, true>>({});
@@ -115,8 +119,13 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
     if (!containerRef.current) {
       return;
     }
-
-    const rect = containerRef.current.getBoundingClientRect();
+    const rectLeft = offsetRef.current.left;
+    const rectTop = offsetRef.current.top;
+    const width = boundsRef.current.width;
+    const height = boundsRef.current.height;
+    if (width <= 0 || height <= 0) {
+      return;
+    }
 
     setMotionStates((previous) =>
       previous.map((state) => {
@@ -126,8 +135,8 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
 
         return {
           ...state,
-          x: clamp(clientX - rect.left, state.edgePadding, rect.width - state.edgePadding),
-          y: clamp(clientY - rect.top, state.edgePadding, rect.height - state.edgePadding),
+          x: clamp(clientX - rectLeft, state.edgePadding, width - state.edgePadding),
+          y: clamp(clientY - rectTop, state.edgePadding, height - state.edgePadding),
           vx: velocityX,
           vy: velocityY
         };
@@ -147,6 +156,8 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
       }
 
       const rect = containerRef.current.getBoundingClientRect();
+      boundsRef.current = { width: rect.width, height: rect.height };
+      offsetRef.current = { left: rect.left, top: rect.top };
       setMotionStates(
         createInitialBlobMotionStates(
           blobs.map((blob) => ({
@@ -179,14 +190,19 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
         return;
       }
 
-      const rect = containerRef.current.getBoundingClientRect();
       const previousTimestamp = lastTimestampRef.current ?? timestamp;
       const dt = (timestamp - previousTimestamp) / 1000;
       lastTimestampRef.current = timestamp;
+      const width = boundsRef.current.width;
+      const height = boundsRef.current.height;
+      if (width <= 0 || height <= 0) {
+        animationFrameRef.current = window.requestAnimationFrame(step);
+        return;
+      }
 
       setMotionStates((previous) => {
         const draggedBlob = draggingId ? previous.find((state) => state.id === draggingId) : null;
-        const stepped = stepBlobMotionStates(previous, { width: rect.width, height: rect.height }, dt);
+        const stepped = stepBlobMotionStates(previous, { width, height }, dt);
 
         if (!draggedBlob) {
           return stepped;
@@ -447,6 +463,8 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
                   }
 
                   const rect = containerRef.current.getBoundingClientRect();
+                  boundsRef.current = { width: rect.width, height: rect.height };
+                  offsetRef.current = { left: rect.left, top: rect.top };
                   const state = motionStates[index];
                   const centerX = rect.left + (state?.x ?? (blob.leftPercent / 100) * rect.width);
                   const centerY = rect.top + (state?.y ?? (blob.topPercent / 100) * rect.height);
@@ -543,7 +561,7 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
             </tr>
           </thead>
           <tbody>
-            {blobs.slice(0, 16).map((blob) => (
+            {allBlobs.slice(0, 16).map((blob) => (
               <tr className="border-t border-white/10" key={`fallback-${blob.id}`}>
                 <td className="px-3 py-2">{blob.donorDisplayName}</td>
                 <td className="px-3 py-2">{formatCurrency(blob.amount)}</td>

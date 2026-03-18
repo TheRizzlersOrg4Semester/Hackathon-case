@@ -148,6 +148,7 @@ export function createInitialBlobMotionStates(seeds: BlobMotionSeed[], bounds: M
 }
 
 function applyHydrophobicRepulsion(states: BlobMotionState[], dt: number) {
+  const maxInteractionDistance = CAMPAIGN_MAGNET_RANGE;
   // Pairwise rejection impulse + overlap correction for droplet-like separation.
   for (let i = 0; i < states.length; i += 1) {
     for (let j = i + 1; j < states.length; j += 1) {
@@ -156,6 +157,11 @@ function applyHydrophobicRepulsion(states: BlobMotionState[], dt: number) {
 
       const dx = b.x - a.x;
       const dy = b.y - a.y;
+      // Cheap axis-aligned rejection to avoid expensive distance math for far pairs.
+      if (Math.abs(dx) > maxInteractionDistance || Math.abs(dy) > maxInteractionDistance) {
+        continue;
+      }
+
       const distance = Math.hypot(dx, dy) || 0.001;
       const minDistance = (a.sizePx + b.sizePx) * 0.52;
       const nearDistance = minDistance * NEAR_BUMP_FACTOR;

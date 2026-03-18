@@ -40,6 +40,7 @@ const MAX_THROW_SPEED = 1200;
 const SPLASH_RADIUS = 260;
 const SPLASH_FORCE = 380;
 const MOMENTUM_HOLD_SECONDS = 2.2;
+const MAX_CAMPAIGN_BLOBS = 30;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -65,7 +66,8 @@ function formatTimestamp(date: Date): string {
 }
 
 export function DonorBlobVisualization({ donations }: DonorBlobVisualizationProps) {
-  const blobs = useMemo(() => mapDonationsToBlobs(donations), [donations]);
+  const allBlobs = useMemo(() => mapDonationsToBlobs(donations), [donations]);
+  const blobs = useMemo(() => allBlobs.slice(0, MAX_CAMPAIGN_BLOBS), [allBlobs]);
   const [activeBlobId, setActiveBlobId] = useState<string | null>(blobs[0]?.id ?? null);
   const [selectedBlobId, setSelectedBlobId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -73,6 +75,8 @@ export function DonorBlobVisualization({ donations }: DonorBlobVisualizationProp
   const containerRef = useRef<HTMLUListElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastTimestampRef = useRef<number | null>(null);
+  const boundsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
+  const offsetRef = useRef<{ left: number; top: number }>({ left: 0, top: 0 });
   const dragStateRef = useRef<DragState | null>(null);
   const clickSuppressionRef = useRef<string | null>(null);
   const [campaignImageErrors, setCampaignImageErrors] = useState<Record<string, true>>({});
@@ -96,8 +100,13 @@ export function DonorBlobVisualization({ donations }: DonorBlobVisualizationProp
     if (!containerRef.current) {
       return;
     }
-
-    const rect = containerRef.current.getBoundingClientRect();
+    const rectLeft = offsetRef.current.left;
+    const rectTop = offsetRef.current.top;
+    const width = boundsRef.current.width;
+    const height = boundsRef.current.height;
+    if (width <= 0 || height <= 0) {
+      return;
+    }
 
     setMotionStates((previous) =>
       previous.map((state) => {
@@ -107,8 +116,8 @@ export function DonorBlobVisualization({ donations }: DonorBlobVisualizationProp
 
         return {
           ...state,
-          x: clamp(clientX - rect.left, state.edgePadding, rect.width - state.edgePadding),
-          y: clamp(clientY - rect.top, state.edgePadding, rect.height - state.edgePadding),
+          x: clamp(clientX - rectLeft, state.edgePadding, width - state.edgePadding),
+          y: clamp(clientY - rectTop, state.edgePadding, height - state.edgePadding),
           vx: velocityX,
           vy: velocityY
         };
@@ -128,6 +137,8 @@ export function DonorBlobVisualization({ donations }: DonorBlobVisualizationProp
       }
 
       const rect = containerRef.current.getBoundingClientRect();
+      boundsRef.current = { width: rect.width, height: rect.height };
+      offsetRef.current = { left: rect.left, top: rect.top };
       setMotionStates(
         createInitialBlobMotionStates(
           blobs.map((blob) => ({
@@ -160,14 +171,19 @@ export function DonorBlobVisualization({ donations }: DonorBlobVisualizationProp
         return;
       }
 
-      const rect = containerRef.current.getBoundingClientRect();
       const previousTimestamp = lastTimestampRef.current ?? timestamp;
       const dt = (timestamp - previousTimestamp) / 1000;
       lastTimestampRef.current = timestamp;
+      const width = boundsRef.current.width;
+      const height = boundsRef.current.height;
+      if (width <= 0 || height <= 0) {
+        animationFrameRef.current = window.requestAnimationFrame(step);
+        return;
+      }
 
       setMotionStates((previous) => {
         const draggedBlob = draggingId ? previous.find((state) => state.id === draggingId) : null;
-        const stepped = stepBlobMotionStates(previous, { width: rect.width, height: rect.height }, dt);
+        const stepped = stepBlobMotionStates(previous, { width, height }, dt);
 
         if (!draggedBlob) {
           return stepped;
@@ -404,6 +420,8 @@ export function DonorBlobVisualization({ donations }: DonorBlobVisualizationProp
                     }
 
                     const rect = containerRef.current.getBoundingClientRect();
+                    boundsRef.current = { width: rect.width, height: rect.height };
+                    offsetRef.current = { left: rect.left, top: rect.top };
                     const state = motionStates[index];
                     const centerX = rect.left + (state?.x ?? ((8 + ((index * 17) % 84)) / 100) * rect.width);
                     const centerY = rect.top + (state?.y ?? ((10 + ((index * 29) % 72)) / 100) * rect.height);
@@ -504,7 +522,7 @@ export function DonorBlobVisualization({ donations }: DonorBlobVisualizationProp
             </tr>
           </thead>
           <tbody>
-            {blobs.map((blob) => (
+            {allBlobs.map((blob) => (
               <tr className="border-b border-white/10 last:border-b-0" key={`row-${blob.id}`}>
                 <td className="px-3 py-2">{blob.donorDisplayName}</td>
                 <td className="px-3 py-2">{formatCurrency(blob.amount)}</td>
