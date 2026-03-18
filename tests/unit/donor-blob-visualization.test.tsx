@@ -16,6 +16,9 @@ const donations = [
     donorName: "Alex",
     isAnonymous: false,
     donationType: "ONE_TIME" as const,
+    blobColor: "#4DD2FF",
+    campaignImageUrl: "https://example.com/campaign-a.png",
+    campaignTitle: "Campaign A",
     createdAt: new Date("2026-03-17T10:00:00Z")
   },
   {
@@ -24,6 +27,9 @@ const donations = [
     donorName: "Private Donor",
     isAnonymous: true,
     donationType: "RECURRING" as const,
+    blobColor: "#2FD39A",
+    campaignImageUrl: "https://example.com/campaign-b.png",
+    campaignTitle: "Campaign B",
     createdAt: new Date("2026-03-17T12:30:00Z")
   }
 ];
@@ -57,5 +63,36 @@ describe("DonorBlobVisualization", () => {
 
     const detailPanel = screen.getByTestId("blob-detail-panel");
     expect(within(detailPanel).getByText("Anonymous")).toBeTruthy();
+  });
+
+  it("renders cleanly when campaign image is missing", () => {
+    render(
+      <DonorBlobVisualization
+        donations={[
+          {
+            ...donations[0],
+            campaignImageUrl: null
+          }
+        ]}
+      />
+    );
+
+    expect(screen.getByRole("table")).toBeTruthy();
+    expect(screen.getByTestId("blob-fallback-d1")).toBeTruthy();
+  });
+
+  it("uses text fallback when campaign image URL is invalid", () => {
+    render(
+      <DonorBlobVisualization
+        donations={[
+          {
+            ...donations[0],
+            campaignImageUrl: "invalid-url"
+          }
+        ]}
+      />
+    );
+
+    expect(screen.getByTestId("blob-fallback-d1")).toBeTruthy();
   });
 });

@@ -14,7 +14,14 @@ const campaignInputSchema = z.object({
   categoryId: z.string().trim().optional(),
   summary: z.string().trim().min(10).max(240),
   description: z.string().trim().min(20).max(6000),
-  goalAmount: z.coerce.number().positive().max(100000000)
+  goalAmount: z.coerce.number().positive().max(100000000),
+  brandImageUrl: z
+    .string()
+    .trim()
+    .optional()
+    .refine((value) => !value || z.string().url().safeParse(value).success, {
+      message: "Campaign image/logo must be a valid URL."
+    })
 });
 
 export type CampaignAdminInput = z.input<typeof campaignInputSchema>;
@@ -38,6 +45,7 @@ export type CampaignAdminPersistence = {
     description: string;
     goalAmount: number;
     categoryId: string | null;
+    brandImageUrl: string | null;
   }) => Promise<CampaignRecord>;
   updateCampaign: (
     campaignId: string,
@@ -48,6 +56,7 @@ export type CampaignAdminPersistence = {
       description: string;
       goalAmount: number;
       categoryId: string | null;
+      brandImageUrl: string | null;
     }
   ) => Promise<void>;
   updateCampaignStatus: (
@@ -94,6 +103,7 @@ function getDefaultAdminPersistence(tx: Prisma.TransactionClient): CampaignAdmin
           description: data.description,
           goalAmount: data.goalAmount,
           categoryId: data.categoryId,
+          brandImageUrl: data.brandImageUrl,
           status: CampaignStatus.DRAFT
         },
         select: {
@@ -110,7 +120,8 @@ function getDefaultAdminPersistence(tx: Prisma.TransactionClient): CampaignAdmin
           summary: data.summary,
           description: data.description,
           goalAmount: data.goalAmount,
-          categoryId: data.categoryId
+          categoryId: data.categoryId,
+          brandImageUrl: data.brandImageUrl
         }
       });
     },
@@ -151,7 +162,8 @@ export async function createCampaignByAdmin(
       summary: validated.summary,
       description: validated.description,
       goalAmount: validated.goalAmount,
-      categoryId: normalizeOptionalString(validated.categoryId)
+      categoryId: normalizeOptionalString(validated.categoryId),
+      brandImageUrl: normalizeOptionalString(validated.brandImageUrl)
     });
 
     return {
@@ -182,7 +194,8 @@ export async function updateCampaignByAdmin(
       summary: validated.summary,
       description: validated.description,
       goalAmount: validated.goalAmount,
-      categoryId: normalizeOptionalString(validated.categoryId)
+      categoryId: normalizeOptionalString(validated.categoryId),
+      brandImageUrl: normalizeOptionalString(validated.brandImageUrl)
     });
   };
 

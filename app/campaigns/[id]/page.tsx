@@ -38,6 +38,11 @@ export default async function CampaignDetailPage({ params }: CampaignDetailPageP
     donorName: donation.donorName,
     isAnonymous: donation.isAnonymous,
     donationType: donation.donationType,
+    blobColor: donation.blobColor,
+    campaignImageUrl: campaign.brandImageUrl,
+    campaignTitle: campaign.title,
+    accessGroupKey: donation.donationAccessId,
+    campaignScopeKey: campaign.id,
     createdAt: donation.createdAt
   }));
 

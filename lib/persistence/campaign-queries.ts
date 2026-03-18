@@ -41,8 +41,10 @@ export async function getPublishedCampaignById(id: string) {
           amount: true,
           donorName: true,
           donorEmail: true,
+          donationAccessId: true,
           isAnonymous: true,
           donationType: true,
+          blobColor: true,
           createdAt: true
         }
       }
@@ -73,6 +75,7 @@ export async function getLandingCampaignData() {
       slug: true,
       title: true,
       summary: true,
+      brandImageUrl: true,
       goalAmount: true,
       category: {
         select: {
@@ -85,8 +88,10 @@ export async function getLandingCampaignData() {
           id: true,
           amount: true,
           donorName: true,
+          donationAccessId: true,
           isAnonymous: true,
           donationType: true,
+          blobColor: true,
           createdAt: true
         }
       }

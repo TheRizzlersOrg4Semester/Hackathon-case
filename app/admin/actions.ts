@@ -18,7 +18,8 @@ function readCampaignFormData(formData: FormData) {
     categoryId: String(formData.get("categoryId") ?? ""),
     summary: String(formData.get("summary") ?? ""),
     description: String(formData.get("description") ?? ""),
-    goalAmount: Number(formData.get("goalAmount") ?? 0)
+    goalAmount: Number(formData.get("goalAmount") ?? 0),
+    brandImageUrl: String(formData.get("brandImageUrl") ?? "")
   };
 }
 

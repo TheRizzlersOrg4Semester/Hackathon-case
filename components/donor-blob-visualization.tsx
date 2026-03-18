@@ -8,6 +8,11 @@ import {
   stepBlobMotionStates,
   type BlobMotionState
 } from "@/lib/domain/blob-motion";
+import {
+  buildBlobSurfaceBackground,
+  buildBlobSurfaceShadow,
+  hasRenderableCampaignImageUrl
+} from "@/lib/domain/blob-colors";
 import { mapDonationsToBlobs, type PublicDonationData } from "@/lib/domain/donor-blobs";
 
 type DonorBlobVisualizationProps = {
@@ -70,6 +75,7 @@ export function DonorBlobVisualization({ donations }: DonorBlobVisualizationProp
   const lastTimestampRef = useRef<number | null>(null);
   const dragStateRef = useRef<DragState | null>(null);
   const clickSuppressionRef = useRef<string | null>(null);
+  const [campaignImageErrors, setCampaignImageErrors] = useState<Record<string, true>>({});
 
   const displayedBlobId = selectedBlobId ?? activeBlobId;
   const displayedBlob = blobs.find((blob) => blob.id === displayedBlobId) ?? blobs[0];
@@ -126,7 +132,8 @@ export function DonorBlobVisualization({ donations }: DonorBlobVisualizationProp
         createInitialBlobMotionStates(
           blobs.map((blob) => ({
             id: blob.id,
-            sizePx: blob.sizePx
+            sizePx: blob.sizePx,
+            groupKey: blob.magnetGroupKey
           })),
           {
             width: rect.width,
@@ -329,7 +336,10 @@ export function DonorBlobVisualization({ donations }: DonorBlobVisualizationProp
 
       <div className="relative overflow-hidden rounded-3xl border border-white/20 bg-slate-950/45 p-4 shadow-2xl md:p-6">
         <div className="campaign-map-glow" />
+        <div className="campaign-map-aurora" />
         <div className="campaign-map-grid" />
+        <div className="campaign-map-noise" />
+        <div className="campaign-map-vignette" />
         <ul
           aria-label="Donation blobs"
           className="relative min-h-[300px] md:min-h-[360px]"
@@ -338,6 +348,8 @@ export function DonorBlobVisualization({ donations }: DonorBlobVisualizationProp
           {blobs.map((blob, index) => {
             const motionState = motionStates[index];
             const isDragging = draggingId === blob.id;
+            const canRenderCampaignImage =
+              hasRenderableCampaignImageUrl(blob.campaignImageUrl) && !campaignImageErrors[blob.id];
             const fallbackStyle = {
               left: `${8 + ((index * 17) % 84)}%`,
               top: `${10 + ((index * 29) % 72)}%`,
@@ -363,7 +375,7 @@ export function DonorBlobVisualization({ donations }: DonorBlobVisualizationProp
             return (
               <li key={blob.id}>
                 <button
-                  aria-label={`${blob.donorDisplayName}, ${formatCurrency(blob.amount)}, ${formatDonationType(blob.donationType)}`}
+                  aria-label={`${blob.donorDisplayName}, ${formatCurrency(blob.amount)}, ${formatDonationType(blob.donationType)}, ${blob.campaignTitle}`}
                   aria-pressed={selectedBlobId === blob.id}
                   className={`donor-blob ${blob.colorClass} ${selectedBlobId === blob.id ? "is-selected" : ""} ${isDragging ? "is-dragging" : ""}`}
                   onBlur={() => {
@@ -422,10 +434,35 @@ export function DonorBlobVisualization({ donations }: DonorBlobVisualizationProp
                     ...motionStyle,
                     borderRadius: render?.borderRadius,
                     width: `${blob.sizePx}px`,
-                    height: `${blob.sizePx}px`
+                    height: `${blob.sizePx}px`,
+                    background: buildBlobSurfaceBackground(blob.resolvedColorHex),
+                    boxShadow: buildBlobSurfaceShadow(blob.resolvedColorHex, selectedBlobId === blob.id)
                   }}
                   type="button"
                 >
+                  {canRenderCampaignImage ? (
+                    <span aria-hidden="true" className="blob-campaign-badge">
+                      <span className="blob-campaign-badge__glow" />
+                      <span className="blob-campaign-badge__image">
+                        <img
+                          alt=""
+                          className="blob-campaign-badge__img"
+                          onError={() =>
+                            setCampaignImageErrors((previous) => ({
+                              ...previous,
+                              [blob.id]: true
+                            }))
+                          }
+                          src={blob.campaignImageUrl ?? ""}
+                        />
+                      </span>
+                    </span>
+                  ) : (
+                    <span aria-hidden="true" className="blob-identity-fallback" data-testid={`blob-fallback-${blob.id}`}>
+                      <span className="blob-identity-fallback__campaign">{blob.campaignTitle}</span>
+                      <span className="blob-identity-fallback__donor">{blob.donorDisplayName}</span>
+                    </span>
+                  )}
                   <span className="sr-only">{blob.donorDisplayName}</span>
                 </button>
               </li>
@@ -437,12 +474,20 @@ export function DonorBlobVisualization({ donations }: DonorBlobVisualizationProp
       {displayedBlob ? (
         <div
           aria-live="polite"
-          className="grid gap-2 rounded-2xl border border-white/20 bg-white/10 p-4 text-sm text-slate-100 backdrop-blur md:grid-cols-2"
+          className="grid gap-2 rounded-2xl border border-white/20 bg-white/10 p-4 text-sm text-slate-100 backdrop-blur md:grid-cols-3"
           data-testid="blob-detail-panel"
         >
           <p className="font-semibold text-white">{displayedBlob.donorDisplayName}</p>
           <p className="font-semibold text-white">{formatCurrency(displayedBlob.amount)}</p>
           <p className="text-slate-200">{formatDonationType(displayedBlob.donationType)}</p>
+          <p className="text-slate-300">{displayedBlob.campaignTitle}</p>
+          <p className="flex items-center gap-2 text-slate-300">
+            <span
+              className="inline-flex h-3 w-3 rounded-full border border-white/40"
+              style={{ background: displayedBlob.resolvedColorHex }}
+            />
+            Selected blob tone
+          </p>
           <p className="text-slate-300">{formatTimestamp(displayedBlob.createdAt)}</p>
         </div>
       ) : null}

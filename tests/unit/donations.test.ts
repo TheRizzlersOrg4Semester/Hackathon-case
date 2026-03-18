@@ -37,6 +37,7 @@ describe("validateDonationInput", () => {
     expect(result.donationType).toBe("ONE_TIME");
     expect(result.isAnonymous).toBe(false);
     expect(result.donorEmail).toBe("");
+    expect(result.accessCodeMode).toBe("CREATE_NEW");
   });
 
   it("throws on invalid donor email", () => {

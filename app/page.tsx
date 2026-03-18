@@ -41,11 +41,15 @@ export default async function HomePage() {
         donorName: donation.donorName,
         isAnonymous: donation.isAnonymous,
         donationType: donation.donationType,
+        blobColor: donation.blobColor,
+        donationAccessId: donation.donationAccessId,
         createdAt: donation.createdAt,
         campaignTitle: campaign.title,
-        campaignSlug: campaign.slug
+        campaignSlug: campaign.slug,
+        campaignImageUrl: campaign.brandImageUrl
       }))
     )
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
     .slice(0, 60);
 
   const stats = buildLandingStats(campaigns, donations);
@@ -71,7 +75,7 @@ export default async function HomePage() {
               <Link className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-900 shadow-lg" href="/campaigns">
                 Start exploring campaigns
               </Link>
-              <Link className="rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur" href="/history/user">
+              <Link className="rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur" href="/my-donations">
                 View donor history
               </Link>
             </div>

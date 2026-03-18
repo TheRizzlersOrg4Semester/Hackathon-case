@@ -8,6 +8,11 @@ import {
   stepBlobMotionStates,
   type BlobMotionState
 } from "@/lib/domain/blob-motion";
+import {
+  buildBlobSurfaceBackground,
+  buildBlobSurfaceShadow,
+  hasRenderableCampaignImageUrl
+} from "@/lib/domain/blob-colors";
 import { mapGlobalDonationBlobs, type LandingDonation } from "@/lib/domain/landing";
 
 type GlobalDonationBlobMapProps = {
@@ -61,6 +66,25 @@ function formatTimestamp(date: Date): string {
 
 export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps) {
   const blobs = useMemo(() => mapGlobalDonationBlobs(donations), [donations]);
+  const campaignIdentityItems = useMemo(() => {
+    const seen = new Set<string>();
+    const items: Array<{ slug: string; title: string; imageUrl: string | null }> = [];
+
+    for (const donation of donations) {
+      if (seen.has(donation.campaignSlug)) {
+        continue;
+      }
+
+      seen.add(donation.campaignSlug);
+      items.push({
+        slug: donation.campaignSlug,
+        title: donation.campaignTitle,
+        imageUrl: donation.campaignImageUrl
+      });
+    }
+
+    return items.slice(0, 8);
+  }, [donations]);
   const [activeId, setActiveId] = useState<string | null>(blobs[0]?.id ?? null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -70,6 +94,7 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
   const lastTimestampRef = useRef<number | null>(null);
   const dragStateRef = useRef<DragState | null>(null);
   const clickSuppressionRef = useRef<string | null>(null);
+  const [campaignImageErrors, setCampaignImageErrors] = useState<Record<string, true>>({});
 
   const currentId = selectedId ?? activeId;
   const focusedBlob = blobs.find((blob) => blob.id === currentId) ?? blobs[0];
@@ -126,7 +151,8 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
         createInitialBlobMotionStates(
           blobs.map((blob) => ({
             id: blob.id,
-            sizePx: blob.sizePx
+            sizePx: blob.sizePx,
+            groupKey: blob.magnetGroupKey
           })),
           {
             width: rect.width,
@@ -323,6 +349,27 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
           <p className="max-w-2xl text-sm text-slate-200">
             Grab a blob, yeet it across the field, and watch the whole puddle turn into a tiny jelly riot.
           </p>
+          {campaignIdentityItems.length > 0 ? (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {campaignIdentityItems.map((campaign) => (
+                <span
+                  className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs text-slate-100"
+                  key={campaign.slug}
+                >
+                  {campaign.imageUrl ? (
+                    <span
+                      aria-hidden="true"
+                      className="h-4 w-4 rounded-full border border-white/35 bg-white/20"
+                      style={{ backgroundImage: `url(${campaign.imageUrl})`, backgroundSize: "cover", backgroundPosition: "center" }}
+                    />
+                  ) : (
+                    <span aria-hidden="true" className="h-4 w-4 rounded-full border border-white/35 bg-white/20" />
+                  )}
+                  {campaign.title}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
         <Link className="rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur" href="/campaigns">
           Explore all campaigns
@@ -331,7 +378,10 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
 
       <div className="relative overflow-hidden rounded-3xl border border-white/20 bg-slate-950/45 p-4 md:p-6">
         <div className="landing-map-glow" />
+        <div className="landing-map-aurora" />
         <div className="landing-map-grid" />
+        <div className="landing-map-noise" />
+        <div className="landing-map-vignette" />
         <div
           className="relative h-[420px] w-full md:h-[520px]"
           ref={containerRef}
@@ -341,6 +391,8 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
           {blobs.map((blob, index) => {
             const motionState = motionStates[index];
             const isDragging = draggingId === blob.id;
+            const canRenderCampaignImage =
+              hasRenderableCampaignImageUrl(blob.campaignImageUrl) && !campaignImageErrors[blob.id];
             const fallbackStyle = {
               left: `${blob.leftPercent}%`,
               top: `${blob.topPercent}%`,
@@ -425,10 +477,35 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
                   ...motionStyle,
                   borderRadius: render?.borderRadius,
                   width: `${blob.sizePx}px`,
-                  height: `${blob.sizePx}px`
+                  height: `${blob.sizePx}px`,
+                  background: buildBlobSurfaceBackground(blob.resolvedColorHex),
+                  boxShadow: buildBlobSurfaceShadow(blob.resolvedColorHex, selectedId === blob.id)
                 }}
                 type="button"
               >
+                {canRenderCampaignImage ? (
+                  <span aria-hidden="true" className="blob-campaign-badge">
+                    <span className="blob-campaign-badge__glow" />
+                    <span className="blob-campaign-badge__image">
+                      <img
+                        alt=""
+                        className="blob-campaign-badge__img"
+                        onError={() =>
+                          setCampaignImageErrors((previous) => ({
+                            ...previous,
+                            [blob.id]: true
+                          }))
+                        }
+                        src={blob.campaignImageUrl ?? ""}
+                      />
+                    </span>
+                  </span>
+                ) : (
+                  <span aria-hidden="true" className="blob-identity-fallback">
+                    <span className="blob-identity-fallback__campaign">{blob.campaignTitle}</span>
+                    <span className="blob-identity-fallback__donor">{blob.donorDisplayName}</span>
+                  </span>
+                )}
                 <span className="sr-only">{blob.donorDisplayName}</span>
               </button>
             );
@@ -437,11 +514,18 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
       </div>
 
       {focusedBlob ? (
-        <div className="grid gap-3 rounded-2xl border border-white/20 bg-white/10 p-4 text-sm text-white backdrop-blur md:grid-cols-5">
+        <div className="grid gap-3 rounded-2xl border border-white/20 bg-white/10 p-4 text-sm text-white backdrop-blur md:grid-cols-6">
           <p className="font-medium">{focusedBlob.donorDisplayName}</p>
           <p>{formatCurrency(focusedBlob.amount)}</p>
           <p>{formatDonationType(focusedBlob.donationType)}</p>
           <p>{focusedBlob.campaignTitle}</p>
+          <p className="flex items-center gap-2 text-slate-200">
+            <span
+              className="inline-flex h-3 w-3 rounded-full border border-white/40"
+              style={{ background: focusedBlob.resolvedColorHex }}
+            />
+            Blob tone
+          </p>
           <p>{formatTimestamp(focusedBlob.createdAt)}</p>
         </div>
       ) : null}

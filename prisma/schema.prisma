@@ -43,6 +43,7 @@ model Campaign {
   slug        String         @unique
   summary     String?
   description String?
+  brandImageUrl String?
   goalAmount  Decimal        @db.Decimal(12, 2)
   status      CampaignStatus @default(DRAFT)
   createdAt   DateTime       @default(now())
@@ -83,6 +84,15 @@ model User {
   reviewedCampaignRequests CampaignRequest[] @relation("CampaignRequestReviewer")
 }
 
+model DonationAccess {
+  id         String   @id @default(cuid())
+  accessCode String   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  donations Donation[]
+}
+
 model CampaignRequest {
   id                 String                @id @default(cuid())
   requesterName      String
@@ -110,9 +120,11 @@ model Donation {
   id             String       @id @default(cuid())
   campaignId     String
   userId         String?
+  donationAccessId String?
   amount         Decimal      @db.Decimal(12, 2)
   donorName      String?
   donorEmail     String?
+  blobColor      String?
   isAnonymous    Boolean      @default(false)
   donationType   DonationType @default(ONE_TIME)
   donorMessage   String?
@@ -120,11 +132,13 @@ model Donation {
 
   campaign       Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   user           User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  donationAccess DonationAccess?  @relation(fields: [donationAccessId], references: [id], onDelete: SetNull)
   receipt        DonationReceipt?
   thankYouAction ThankYouAction?
 
   @@index([campaignId, createdAt])
   @@index([userId, createdAt])
+  @@index([donationAccessId, createdAt])
 }
 
 model DonationReceipt {

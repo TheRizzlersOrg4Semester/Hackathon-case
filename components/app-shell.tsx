@@ -7,7 +7,7 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/campaigns", label: "Campaigns" },
   { href: "/request-campaign", label: "Request Campaign" },
-  { href: "/history/user", label: "My Donations" },
+  { href: "/my-donations", label: "My Donations" },
   { href: "/admin", label: "Admin" }
 ];
 

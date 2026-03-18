@@ -8,7 +8,10 @@ const donationFormSchema = z.object({
   donationType: z.enum(["ONE_TIME", "RECURRING"]).default("ONE_TIME"),
   isAnonymous: z.boolean().default(false),
   donorName: z.string().optional(),
-  donorEmail: z.string().optional()
+  donorEmail: z.string().optional(),
+  accessCodeMode: z.enum(["CREATE_NEW", "USE_EXISTING"]).default("CREATE_NEW"),
+  supporterAccessCode: z.string().optional(),
+  blobColor: z.string().optional()
 });
 
 export type DonationFormState = {
@@ -17,6 +20,8 @@ export type DonationFormState = {
   receiptNumber?: string;
   paymentReference?: string;
   thankYouTier?: string;
+  supporterAccessCode?: string;
+  supporterAccessCodeCreated?: boolean;
 };
 
 export async function submitDonationAction(
@@ -24,12 +29,20 @@ export async function submitDonationAction(
   _prevState: DonationFormState,
   formData: FormData
 ): Promise<DonationFormState> {
+  const getOptionalString = (key: string) => {
+    const value = formData.get(key);
+    return typeof value === "string" ? value : undefined;
+  };
+
   const parsed = donationFormSchema.safeParse({
     amount: formData.get("amount"),
     donationType: formData.get("donationType"),
     isAnonymous: formData.get("isAnonymous") === "on",
-    donorName: formData.get("donorName"),
-    donorEmail: formData.get("donorEmail")
+    donorName: getOptionalString("donorName"),
+    donorEmail: getOptionalString("donorEmail"),
+    accessCodeMode: formData.get("accessCodeMode"),
+    supporterAccessCode: getOptionalString("supporterAccessCode"),
+    blobColor: getOptionalString("blobColor")
   });
 
   if (!parsed.success) {
@@ -46,15 +59,20 @@ export async function submitDonationAction(
       donationType: parsed.data.donationType,
       isAnonymous: parsed.data.isAnonymous,
       donorName: parsed.data.donorName,
-      donorEmail: parsed.data.donorEmail
+      donorEmail: parsed.data.donorEmail,
+      accessCodeMode: parsed.data.accessCodeMode,
+      supporterAccessCode: parsed.data.supporterAccessCode,
+      blobColor: parsed.data.blobColor
     });
 
     return {
       status: "success",
-      message: "Donation completed with simulated payment.",
+      message: "Donation completed with simulated payment. Save your Supporter Access Code for My Donations lookup.",
       receiptNumber: result.receiptNumber,
       paymentReference: result.paymentReference,
-      thankYouTier: result.thankYouTier
+      thankYouTier: result.thankYouTier,
+      supporterAccessCode: result.supporterAccessCode,
+      supporterAccessCodeCreated: result.supporterAccessCodeCreated
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Donation could not be completed.";

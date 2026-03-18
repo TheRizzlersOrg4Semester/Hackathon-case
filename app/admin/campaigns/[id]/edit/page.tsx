@@ -107,6 +107,16 @@ export default async function AdminEditCampaignPage({ params }: AdminEditCampaig
         </label>
 
         <label className="block space-y-1 text-sm font-medium">
+          Campaign image/logo URL (optional)
+          <input
+            className="w-full rounded-lg border border-white/30 bg-white/90 px-3 py-2 text-slate-900"
+            defaultValue={campaign.brandImageUrl ?? ""}
+            name="brandImageUrl"
+            type="url"
+          />
+        </label>
+
+        <label className="block space-y-1 text-sm font-medium">
           Goal amount (DKK)
           <input
             className="w-full rounded-lg border border-white/30 bg-white/90 px-3 py-2 text-slate-900"
