@@ -20,6 +20,8 @@ export type DonationFormState = {
   receiptNumber?: string;
   paymentReference?: string;
   thankYouTier?: string;
+  thankYouEmailStatus?: "skipped" | "triggered" | "failed";
+  thankYouEmailMessage?: string;
   supporterAccessCode?: string;
   supporterAccessCodeCreated?: boolean;
 };
@@ -71,6 +73,8 @@ export async function submitDonationAction(
       receiptNumber: result.receiptNumber,
       paymentReference: result.paymentReference,
       thankYouTier: result.thankYouTier,
+      thankYouEmailStatus: result.thankYouEmailDelivery.status,
+      thankYouEmailMessage: result.thankYouEmailDelivery.message,
       supporterAccessCode: result.supporterAccessCode,
       supporterAccessCodeCreated: result.supporterAccessCodeCreated
     };

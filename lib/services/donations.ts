@@ -7,6 +7,11 @@ import {
 } from "@/lib/domain/access-codes";
 import { isSupportedBlobColor } from "@/lib/domain/blob-colors";
 import { prisma } from "@/lib/persistence/prisma";
+import {
+  sendDonationThankYouEmail,
+  type ThankYouEmailDelivery,
+  type ThankYouEmailInput
+} from "@/lib/services/thank-you-emails";
 
 const donationInputSchema = z.object({
   campaignId: z.string().min(1),
@@ -31,6 +36,8 @@ export type ValidDonationInput = z.output<typeof donationInputSchema>;
 
 type PublishedCampaignRef = {
   id: string;
+  title: string;
+  summary: string | null;
 };
 
 type DonationAccessRef = {
@@ -169,7 +176,9 @@ function getDefaultDonationPersistence(tx: Prisma.TransactionClient): DonationFl
           status: CampaignStatus.PUBLISHED
         },
         select: {
-          id: true
+          id: true,
+          title: true,
+          summary: true
         }
       });
     },
@@ -241,7 +250,42 @@ export type CreateDonationResult = {
   thankYouTier: ThankYouTier;
   supporterAccessCode: string;
   supporterAccessCodeCreated: boolean;
+  thankYouEmailDelivery: ThankYouEmailDelivery;
 };
+
+type DonationFlowInternalResult = {
+  donationId: string;
+  receiptNumber: string;
+  paymentReference: string;
+  thankYouTier: ThankYouTier;
+  supporterAccessCode: string;
+  supporterAccessCodeCreated: boolean;
+  donorEmail: string | null;
+  donorName: string | null;
+  campaignId: string;
+  campaignTitle: string;
+  campaignSummary: string | null;
+  amount: number;
+  donationType: DonationType;
+};
+
+type UpdateThankYouActionStatusInput = {
+  donationId: string;
+  emailStatus: EmailStatus;
+  triggeredAt: Date | null;
+};
+
+async function updateThankYouActionStatus(data: UpdateThankYouActionStatusInput): Promise<void> {
+  await prisma.thankYouAction.update({
+    where: {
+      donationId: data.donationId
+    },
+    data: {
+      emailStatus: data.emailStatus,
+      triggeredAt: data.triggeredAt
+    }
+  });
+}
 
 export async function createDonationWithSimulatedPayment(
   input: DonationInput,
@@ -250,6 +294,8 @@ export async function createDonationWithSimulatedPayment(
     randomDigits?: () => string;
     randomFloat?: () => number;
     persistence?: DonationFlowPersistence;
+    sendThankYouEmail?: (input: ThankYouEmailInput) => Promise<ThankYouEmailDelivery>;
+    updateThankYouActionStatus?: (data: UpdateThankYouActionStatusInput) => Promise<void>;
   }
 ): Promise<CreateDonationResult> {
   const validated = validateDonationInput(input);
@@ -257,7 +303,7 @@ export async function createDonationWithSimulatedPayment(
   const randomDigits = deps?.randomDigits?.() ?? String(Math.floor(100000 + Math.random() * 900000));
   const randomFloat = deps?.randomFloat ?? Math.random;
 
-  const runFlow = async (persistence: DonationFlowPersistence) => {
+  const runFlow = async (persistence: DonationFlowPersistence): Promise<DonationFlowInternalResult> => {
     const campaign = await persistence.getPublishedCampaignById(validated.campaignId);
 
     if (!campaign) {
@@ -265,6 +311,8 @@ export async function createDonationWithSimulatedPayment(
     }
 
     const accessResolution = await resolveDonationAccess(validated, persistence, randomFloat);
+    const donorName = normalizeOptionalString(validated.donorName);
+    const donorEmail = normalizeOptionalString(validated.donorEmail);
 
     const donation = await persistence.createDonation({
       campaignId: validated.campaignId,
@@ -272,8 +320,8 @@ export async function createDonationWithSimulatedPayment(
       amount: validated.amount,
       donationType: validated.donationType,
       isAnonymous: validated.isAnonymous,
-      donorName: normalizeOptionalString(validated.donorName),
-      donorEmail: normalizeOptionalString(validated.donorEmail),
+      donorName,
+      donorEmail,
       blobColor: normalizeBlobColor(validated.blobColor)
     });
 
@@ -299,16 +347,71 @@ export async function createDonationWithSimulatedPayment(
       paymentReference,
       thankYouTier: tier,
       supporterAccessCode: accessResolution.access.accessCode,
-      supporterAccessCodeCreated: accessResolution.createdNow
+      supporterAccessCodeCreated: accessResolution.createdNow,
+      donorEmail,
+      donorName,
+      campaignId: validated.campaignId,
+      campaignTitle: campaign.title,
+      campaignSummary: campaign.summary,
+      amount: validated.amount,
+      donationType: validated.donationType
     };
   };
 
-  if (deps?.persistence) {
-    return runFlow(deps.persistence);
+  const completedDonation = deps?.persistence
+    ? await runFlow(deps.persistence)
+    : await prisma.$transaction(async (tx) => {
+        const persistence = getDefaultDonationPersistence(tx);
+        return runFlow(persistence);
+      });
+
+  const sendThankYouEmail = deps?.sendThankYouEmail ?? sendDonationThankYouEmail;
+  let thankYouEmailDelivery: ThankYouEmailDelivery;
+
+  try {
+    thankYouEmailDelivery = await sendThankYouEmail({
+      donorEmail: completedDonation.donorEmail,
+      donorName: completedDonation.donorName,
+      campaignId: completedDonation.campaignId,
+      campaignTitle: completedDonation.campaignTitle,
+      campaignSummary: completedDonation.campaignSummary,
+      amount: completedDonation.amount,
+      donationType: completedDonation.donationType,
+      receiptNumber: completedDonation.receiptNumber,
+      paymentReference: completedDonation.paymentReference,
+      supporterAccessCode: completedDonation.supporterAccessCode,
+      supporterAccessCodeCreated: completedDonation.supporterAccessCodeCreated,
+      thankYouTier: completedDonation.thankYouTier
+    });
+  } catch (error) {
+    thankYouEmailDelivery = {
+      status: "failed",
+      message: "Takke-mailen kunne ikke behandles efter donationen.",
+      error: error instanceof Error ? error.message : "Unknown email post-processing error"
+    };
   }
 
-  return prisma.$transaction(async (tx) => {
-    const persistence = getDefaultDonationPersistence(tx);
-    return runFlow(persistence);
-  });
+  if (thankYouEmailDelivery.status === "triggered" || thankYouEmailDelivery.status === "failed") {
+    const persistThankYouActionStatus = deps?.updateThankYouActionStatus ?? updateThankYouActionStatus;
+
+    try {
+      await persistThankYouActionStatus({
+        donationId: completedDonation.donationId,
+        emailStatus: thankYouEmailDelivery.status === "triggered" ? EmailStatus.TRIGGERED : EmailStatus.FAILED,
+        triggeredAt: new Date()
+      });
+    } catch {
+      // The donation has already been committed. Status-sync failure must not break the user flow.
+    }
+  }
+
+  return {
+    donationId: completedDonation.donationId,
+    receiptNumber: completedDonation.receiptNumber,
+    paymentReference: completedDonation.paymentReference,
+    thankYouTier: completedDonation.thankYouTier,
+    supporterAccessCode: completedDonation.supporterAccessCode,
+    supporterAccessCodeCreated: completedDonation.supporterAccessCodeCreated,
+    thankYouEmailDelivery
+  };
 }

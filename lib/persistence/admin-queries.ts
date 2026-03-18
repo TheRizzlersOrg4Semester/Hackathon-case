@@ -93,7 +93,14 @@ export async function getAdminCampaignById(id: string) {
           donorEmail: true,
           isAnonymous: true,
           donationType: true,
-          createdAt: true
+          createdAt: true,
+          thankYouAction: {
+            select: {
+              tier: true,
+              emailStatus: true,
+              triggeredAt: true
+            }
+          }
         }
       }
     }

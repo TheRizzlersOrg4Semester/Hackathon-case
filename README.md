@@ -22,12 +22,18 @@ This repository includes the current MVP flow:
 ## Local Setup
 
 1. `npm install`
-2. Create `.env` with:
-   `DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DB_NAME?schema=public"`
-3. `npm run prisma:generate`
-4. `npm run prisma:migrate:dev`
-5. `npm run db:seed`
-6. `npm run dev`
+2. Create a root `.env` file. The app reads `.env` directly via Next.js and Prisma.
+3. Add the local database connection:
+   `DATABASE_URL="postgresql://pulsefund:pulsefund@127.0.0.1:54329/pulsefund?schema=public"`
+4. Optional Resend setup for the thank-you email demo:
+   `RESEND_API_KEY="re_xxxxx"`
+   `RESEND_FROM_EMAIL="PulseFund <onboarding@resend.dev>"`
+   `PULSEFUND_BASE_URL="http://localhost:3000"`
+5. For Resend test mode without a custom domain, keep `RESEND_FROM_EMAIL` as `onboarding@resend.dev` and use the email address tied to your own Resend account as the donor email in the form.
+6. `npm run prisma:generate`
+7. `npm run prisma:migrate:dev`
+8. `npm run db:seed`
+9. `npm run dev`
 
 ## Test Commands
 

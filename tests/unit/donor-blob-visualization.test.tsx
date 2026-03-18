@@ -2,6 +2,7 @@
 
 import React from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import type { DonationType } from "@prisma/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { DonorBlobVisualization } from "../../components/donor-blob-visualization";
 
@@ -41,7 +42,7 @@ describe("DonorBlobVisualization", () => {
       amount: 100 + index * 10,
       donorName: `Donor ${index + 1}`,
       isAnonymous: false,
-      donationType: (index % 2 === 0 ? "ONE_TIME" : "RECURRING") as const,
+      donationType: (index % 2 === 0 ? "ONE_TIME" : "RECURRING") as DonationType,
       blobColor: null,
       campaignImageUrl: null,
       campaignTitle: "Campaign A",

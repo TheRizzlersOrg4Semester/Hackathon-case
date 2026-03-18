@@ -176,6 +176,8 @@ export default async function AdminEditCampaignPage({ params }: AdminEditCampaig
                   <th className="px-2 py-2">Email</th>
                   <th className="px-2 py-2">Amount</th>
                   <th className="px-2 py-2">Type</th>
+                  <th className="px-2 py-2">Tier</th>
+                  <th className="px-2 py-2">Mail</th>
                   <th className="px-2 py-2">Created</th>
                   <th className="px-2 py-2">Action</th>
                 </tr>
@@ -190,6 +192,8 @@ export default async function AdminEditCampaignPage({ params }: AdminEditCampaig
                       <td className="px-2 py-2">{donation.donorEmail ?? "-"}</td>
                       <td className="px-2 py-2">{formatCurrency(toAmount(donation.amount))}</td>
                       <td className="px-2 py-2">{donation.donationType}</td>
+                      <td className="px-2 py-2">{donation.thankYouAction?.tier ?? "-"}</td>
+                      <td className="px-2 py-2">{donation.thankYouAction?.emailStatus ?? "PENDING"}</td>
                       <td className="px-2 py-2">
                         {new Intl.DateTimeFormat("da-DK", {
                           dateStyle: "medium",

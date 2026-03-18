@@ -163,6 +163,7 @@ export function DonationForm({ action }: DonationFormProps) {
           <p>Receipt: {state.receiptNumber}</p>
           <p>Payment reference: {state.paymentReference}</p>
           <p>Thank-you tier: {state.thankYouTier}</p>
+          <p>Thank-you email: {state.thankYouEmailMessage}</p>
           <p className="font-semibold">Supporter Access Code: {state.supporterAccessCode}</p>
           <p>
             {state.supporterAccessCodeCreated

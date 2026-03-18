@@ -5,11 +5,12 @@ import { createDonationWithSimulatedPayment, type DonationFlowPersistence } from
 describe("createDonationWithSimulatedPayment", () => {
   it("creates donation, receipt, and thank-you action for a valid first-time donation", async () => {
     const calls: Array<{ op: string; payload: unknown }> = [];
+    const thankYouEmailStatusUpdates: Array<{ donationId: string; emailStatus: EmailStatus; triggeredAt: Date | null }> = [];
 
     const persistence: DonationFlowPersistence = {
       async getPublishedCampaignById() {
         calls.push({ op: "getPublishedCampaignById", payload: null });
-        return { id: "campaign-1" };
+        return { id: "campaign-1", title: "Campaign One", summary: "Help launch the campaign." };
       },
       async findDonationAccessByCode(code) {
         calls.push({ op: "findDonationAccessByCode", payload: code });
@@ -52,7 +53,15 @@ describe("createDonationWithSimulatedPayment", () => {
         persistence,
         now: () => new Date("2026-03-17T10:30:00.000Z"),
         randomDigits: () => "654321",
-        randomFloat: () => 0
+        randomFloat: () => 0,
+        sendThankYouEmail: async () => ({
+          status: "triggered",
+          message: "Email handed off to Resend.",
+          providerMessageId: "email-1"
+        }),
+        updateThankYouActionStatus: async (data) => {
+          thankYouEmailStatusUpdates.push(data);
+        }
       }
     );
 
@@ -61,6 +70,7 @@ describe("createDonationWithSimulatedPayment", () => {
     expect(result.thankYouTier).toBe(ThankYouTier.PERSONAL);
     expect(result.supporterAccessCode).toMatch(/^PF-/);
     expect(result.supporterAccessCodeCreated).toBe(true);
+    expect(result.thankYouEmailDelivery.status).toBe("triggered");
 
     expect(calls).toEqual(
       expect.arrayContaining([
@@ -95,12 +105,17 @@ describe("createDonationWithSimulatedPayment", () => {
         }
       ])
     );
+    expect(thankYouEmailStatusUpdates).toHaveLength(1);
+    expect(thankYouEmailStatusUpdates[0]).toMatchObject({
+      donationId: "donation-1",
+      emailStatus: EmailStatus.TRIGGERED
+    });
   });
 
   it("reuses an existing supporter access code", async () => {
     const persistence: DonationFlowPersistence = {
       async getPublishedCampaignById() {
-        return { id: "campaign-1" };
+        return { id: "campaign-1", title: "Campaign One", summary: "Help launch the campaign." };
       },
       async findDonationAccessByCode(code) {
         if (code === "PF-AB12-CD34") {
