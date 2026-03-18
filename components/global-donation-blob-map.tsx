@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffectEvent, useMemo, useState } from "react";
 import {
   createInitialBlobMotionStates,
   getBlobRenderStyle,
@@ -131,7 +131,7 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
     };
   }, [motionStates.length, reducedMotion]);
 
-  const updateDraggedBlobPosition = (
+  const updateDraggedBlobPosition = useEffectEvent((
     blobId: string,
     clientX: number,
     clientY: number,
@@ -160,73 +160,72 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
         };
       })
     );
-  };
+  });
+
+  const handlePointerMove = useEffectEvent((event: PointerEvent) => {
+    const dragState = dragStateRef.current;
+    if (!dragState || event.pointerId !== dragState.pointerId) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const now = event.timeStamp || performance.now();
+    const dt = Math.max((now - dragState.lastTimestamp) / 1000, 0.001);
+    const nextPointerX = event.clientX;
+    const nextPointerY = event.clientY;
+    const rawVelocityX = (nextPointerX - dragState.lastPointerX) / dt;
+    const rawVelocityY = (nextPointerY - dragState.lastPointerY) / dt;
+
+    dragState.velocityX = rawVelocityX * 0.28;
+    dragState.velocityY = rawVelocityY * 0.28;
+    dragState.lastPointerX = nextPointerX;
+    dragState.lastPointerY = nextPointerY;
+    dragState.lastTimestamp = now;
+
+    if (
+      !dragState.moved &&
+      Math.hypot(nextPointerX - dragState.startPointerX, nextPointerY - dragState.startPointerY) > 6
+    ) {
+      dragState.moved = true;
+    }
+
+    updateDraggedBlobPosition(
+      dragState.blobId,
+      nextPointerX - dragState.pointerOffsetX,
+      nextPointerY - dragState.pointerOffsetY
+    );
+  });
+
+  const finishDrag = useEffectEvent((pointerId: number) => {
+    const dragState = dragStateRef.current;
+    if (!dragState || dragState.pointerId !== pointerId) {
+      return;
+    }
+
+    updateDraggedBlobPosition(
+      dragState.blobId,
+      dragState.lastPointerX - dragState.pointerOffsetX,
+      dragState.lastPointerY - dragState.pointerOffsetY,
+      dragState.velocityX,
+      dragState.velocityY
+    );
+
+    if (dragState.moved) {
+      clickSuppressionRef.current = dragState.blobId;
+    }
+
+    dragStateRef.current = null;
+    window.removeEventListener("pointermove", handlePointerMove);
+    window.removeEventListener("pointerup", handleWindowPointerUp);
+    window.removeEventListener("pointercancel", handleWindowPointerUp);
+  });
+
+  const handleWindowPointerUp = useEffectEvent((event: PointerEvent) => {
+    finishDrag(event.pointerId);
+  });
 
   useEffect(() => {
-    const handlePointerMove = (event: PointerEvent) => {
-      const dragState = dragStateRef.current;
-      if (!dragState || event.pointerId !== dragState.pointerId) {
-        return;
-      }
-
-      event.preventDefault();
-
-      const now = event.timeStamp || performance.now();
-      const dt = Math.max((now - dragState.lastTimestamp) / 1000, 0.001);
-      const nextPointerX = event.clientX;
-      const nextPointerY = event.clientY;
-      const rawVelocityX = (nextPointerX - dragState.lastPointerX) / dt;
-      const rawVelocityY = (nextPointerY - dragState.lastPointerY) / dt;
-
-      dragState.velocityX = rawVelocityX * 0.28;
-      dragState.velocityY = rawVelocityY * 0.28;
-      dragState.lastPointerX = nextPointerX;
-      dragState.lastPointerY = nextPointerY;
-      dragState.lastTimestamp = now;
-
-      if (
-        !dragState.moved &&
-        Math.hypot(nextPointerX - dragState.startPointerX, nextPointerY - dragState.startPointerY) > 6
-      ) {
-        dragState.moved = true;
-      }
-
-      updateDraggedBlobPosition(
-        dragState.blobId,
-        nextPointerX - dragState.pointerOffsetX,
-        nextPointerY - dragState.pointerOffsetY
-      );
-    };
-
-    const finishDrag = (pointerId: number) => {
-      const dragState = dragStateRef.current;
-      if (!dragState || dragState.pointerId !== pointerId) {
-        return;
-      }
-
-      updateDraggedBlobPosition(
-        dragState.blobId,
-        dragState.lastPointerX - dragState.pointerOffsetX,
-        dragState.lastPointerY - dragState.pointerOffsetY,
-        dragState.velocityX,
-        dragState.velocityY
-      );
-
-      if (dragState.moved) {
-        clickSuppressionRef.current = dragState.blobId;
-      }
-
-      dragStateRef.current = null;
-    };
-
-    const handleWindowPointerUp = (event: PointerEvent) => {
-      finishDrag(event.pointerId);
-    };
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handleWindowPointerUp);
-    window.addEventListener("pointercancel", handleWindowPointerUp);
-
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handleWindowPointerUp);
@@ -347,6 +346,9 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
                 updateDraggedBlobPosition(blob.id, centerX, centerY, 0, 0);
                 event.preventDefault();
                 event.currentTarget.setPointerCapture(event.pointerId);
+                window.addEventListener("pointermove", handlePointerMove);
+                window.addEventListener("pointerup", handleWindowPointerUp);
+                window.addEventListener("pointercancel", handleWindowPointerUp);
               }}
               style={{
                 ...motionStyle,
