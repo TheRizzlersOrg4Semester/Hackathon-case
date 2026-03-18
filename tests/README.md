@@ -7,3 +7,7 @@ Test directories are split by intent:
 - `tests/e2e`: browser flows for MVP user journeys
 
 Feature-level tests will be added when each feature reaches implementation phase.
+
+
+
+mathias er dum 
