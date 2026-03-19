@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { buildBlobSwatchBackground, DONATION_BLOB_COLOR_OPTIONS } from "@/lib/domain/blob-colors";
 import type { DonationFormState } from "@/app/donate/[campaignId]/actions";
@@ -31,9 +31,36 @@ export function DonationForm({ action }: DonationFormProps) {
   const [state, formAction] = useActionState(action, initialState);
   const [accessCodeMode, setAccessCodeMode] = useState<"CREATE_NEW" | "USE_EXISTING">("CREATE_NEW");
   const [selectedBlobColor, setSelectedBlobColor] = useState<string>(DONATION_BLOB_COLOR_OPTIONS[0].value);
+  const [paymentStepOpen, setPaymentStepOpen] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const paymentCardholderNameRef = useRef<HTMLInputElement>(null);
+
+  function handleContinueToPayment() {
+    const form = formRef.current;
+
+    if (!form?.reportValidity()) {
+      return;
+    }
+
+    setPaymentStepOpen(true);
+
+    window.requestAnimationFrame(() => {
+      paymentCardholderNameRef.current?.focus();
+    });
+  }
 
   return (
-    <form action={formAction} className="space-y-5 rounded-xl border border-brand-100 bg-white p-5 shadow-sm">
+    <form
+      action={formAction}
+      className="space-y-5 rounded-xl border border-brand-100 bg-white p-5 shadow-sm"
+      onSubmit={(event) => {
+        if (!paymentStepOpen) {
+          event.preventDefault();
+          handleContinueToPayment();
+        }
+      }}
+      ref={formRef}
+    >
       <div className="grid gap-2">
         <label className="font-medium text-brand-900" htmlFor="amount">
           Amount (DKK)
@@ -151,7 +178,126 @@ export function DonationForm({ action }: DonationFormProps) {
         Keep my donation anonymous in public views
       </label>
 
-      <SubmitButton />
+      {!paymentStepOpen ? (
+        <button
+          className="w-full rounded-md bg-brand-700 px-4 py-3 font-medium text-white transition hover:bg-brand-800"
+          onClick={handleContinueToPayment}
+          type="button"
+        >
+          Continue to payment
+        </button>
+      ) : (
+        <fieldset className="space-y-4 rounded-xl border border-brand-200 bg-brand-50 p-4">
+          <legend className="px-2 text-sm font-semibold text-brand-900">Payment simulation</legend>
+          <p className="text-sm text-brand-800">
+            Enter a valid-looking test card to finish the simulation. Full card number and CVC are validated for the
+            flow, but only a masked card summary is stored with the donation.
+          </p>
+
+          <div className="grid gap-2">
+            <label className="font-medium text-brand-900" htmlFor="paymentCardholderName">
+              Cardholder name
+            </label>
+            <input
+              autoComplete="cc-name"
+              className="rounded-md border border-brand-100 px-3 py-2"
+              id="paymentCardholderName"
+              name="paymentCardholderName"
+              ref={paymentCardholderNameRef}
+              required={paymentStepOpen}
+              type="text"
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <label className="font-medium text-brand-900" htmlFor="paymentCardNumber">
+              Card number
+            </label>
+            <input
+              autoComplete="cc-number"
+              className="rounded-md border border-brand-100 px-3 py-2"
+              id="paymentCardNumber"
+              inputMode="numeric"
+              name="paymentCardNumber"
+              pattern="[0-9 ]{12,23}"
+              placeholder="4242 4242 4242 4242"
+              required={paymentStepOpen}
+              type="text"
+            />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-2">
+              <label className="font-medium text-brand-900" htmlFor="paymentExpiryMonth">
+                Expiry month
+              </label>
+              <input
+                autoComplete="cc-exp-month"
+                className="rounded-md border border-brand-100 px-3 py-2"
+                id="paymentExpiryMonth"
+                inputMode="numeric"
+                max="12"
+                min="1"
+                name="paymentExpiryMonth"
+                placeholder="08"
+                required={paymentStepOpen}
+                type="number"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="font-medium text-brand-900" htmlFor="paymentExpiryYear">
+                Expiry year
+              </label>
+              <input
+                autoComplete="cc-exp-year"
+                className="rounded-md border border-brand-100 px-3 py-2"
+                id="paymentExpiryYear"
+                inputMode="numeric"
+                max="2100"
+                min="2000"
+                name="paymentExpiryYear"
+                placeholder="2028"
+                required={paymentStepOpen}
+                type="number"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="font-medium text-brand-900" htmlFor="paymentCvc">
+                CVC
+              </label>
+              <input
+                autoComplete="cc-csc"
+                className="rounded-md border border-brand-100 px-3 py-2"
+                id="paymentCvc"
+                inputMode="numeric"
+                maxLength={4}
+                name="paymentCvc"
+                pattern="[0-9]{3,4}"
+                placeholder="123"
+                required={paymentStepOpen}
+                type="password"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <label className="font-medium text-brand-900" htmlFor="paymentBillingPostalCode">
+              Billing ZIP / postal code (optional)
+            </label>
+            <input
+              autoComplete="postal-code"
+              className="rounded-md border border-brand-100 px-3 py-2"
+              id="paymentBillingPostalCode"
+              name="paymentBillingPostalCode"
+              type="text"
+            />
+          </div>
+
+          <SubmitButton />
+        </fieldset>
+      )}
 
       {state.status === "error" ? (
         <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{state.message}</p>
@@ -162,6 +308,9 @@ export function DonationForm({ action }: DonationFormProps) {
           <p>{state.message}</p>
           <p>Receipt: {state.receiptNumber}</p>
           <p>Payment reference: {state.paymentReference}</p>
+          <p>
+            Payment method: {state.paymentCardBrand} ending in {state.paymentCardLast4}
+          </p>
           <p>Thank-you tier: {state.thankYouTier}</p>
           <p>Thank-you email: {state.thankYouEmailMessage}</p>
           <p className="font-semibold">Supporter Access Code: {state.supporterAccessCode}</p>

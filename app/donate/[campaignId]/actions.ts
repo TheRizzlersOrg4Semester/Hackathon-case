@@ -11,7 +11,13 @@ const donationFormSchema = z.object({
   donorEmail: z.string().optional(),
   accessCodeMode: z.enum(["CREATE_NEW", "USE_EXISTING"]).default("CREATE_NEW"),
   supporterAccessCode: z.string().optional(),
-  blobColor: z.string().optional()
+  blobColor: z.string().optional(),
+  paymentCardholderName: z.string().min(1),
+  paymentCardNumber: z.string().min(1),
+  paymentExpiryMonth: z.coerce.number().int().min(1).max(12),
+  paymentExpiryYear: z.coerce.number().int().min(2000).max(2100),
+  paymentCvc: z.string().min(3),
+  paymentBillingPostalCode: z.string().optional()
 });
 
 export type DonationFormState = {
@@ -19,6 +25,8 @@ export type DonationFormState = {
   message?: string;
   receiptNumber?: string;
   paymentReference?: string;
+  paymentCardBrand?: string;
+  paymentCardLast4?: string;
   thankYouTier?: string;
   thankYouEmailStatus?: "skipped" | "triggered" | "failed";
   thankYouEmailMessage?: string;
@@ -44,7 +52,13 @@ export async function submitDonationAction(
     donorEmail: getOptionalString("donorEmail"),
     accessCodeMode: formData.get("accessCodeMode"),
     supporterAccessCode: getOptionalString("supporterAccessCode"),
-    blobColor: getOptionalString("blobColor")
+    blobColor: getOptionalString("blobColor"),
+    paymentCardholderName: getOptionalString("paymentCardholderName"),
+    paymentCardNumber: getOptionalString("paymentCardNumber"),
+    paymentExpiryMonth: formData.get("paymentExpiryMonth"),
+    paymentExpiryYear: formData.get("paymentExpiryYear"),
+    paymentCvc: getOptionalString("paymentCvc"),
+    paymentBillingPostalCode: getOptionalString("paymentBillingPostalCode")
   });
 
   if (!parsed.success) {
@@ -64,7 +78,13 @@ export async function submitDonationAction(
       donorEmail: parsed.data.donorEmail,
       accessCodeMode: parsed.data.accessCodeMode,
       supporterAccessCode: parsed.data.supporterAccessCode,
-      blobColor: parsed.data.blobColor
+      blobColor: parsed.data.blobColor,
+      paymentCardholderName: parsed.data.paymentCardholderName,
+      paymentCardNumber: parsed.data.paymentCardNumber,
+      paymentExpiryMonth: parsed.data.paymentExpiryMonth,
+      paymentExpiryYear: parsed.data.paymentExpiryYear,
+      paymentCvc: parsed.data.paymentCvc,
+      paymentBillingPostalCode: parsed.data.paymentBillingPostalCode
     });
 
     return {
@@ -72,6 +92,8 @@ export async function submitDonationAction(
       message: "Donation completed with simulated payment. Save your Supporter Access Code for My Donations lookup.",
       receiptNumber: result.receiptNumber,
       paymentReference: result.paymentReference,
+      paymentCardBrand: result.paymentCardBrand,
+      paymentCardLast4: result.paymentCardLast4,
       thankYouTier: result.thankYouTier,
       thankYouEmailStatus: result.thankYouEmailDelivery.status,
       thankYouEmailMessage: result.thankYouEmailDelivery.message,
