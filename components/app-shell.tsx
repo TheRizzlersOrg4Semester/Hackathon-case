@@ -7,8 +7,7 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/campaigns", label: "Campaigns" },
   { href: "/request-campaign", label: "Request Campaign" },
-  { href: "/my-donations", label: "My Donations" },
-  { href: "/admin", label: "Admin" }
+  { href: "/my-donations", label: "My Donations" }
 ];
 
 export function AppShell({ children }: PropsWithChildren) {
@@ -36,8 +35,16 @@ export function AppShell({ children }: PropsWithChildren) {
       </div>
       <header className="relative z-10 border-b border-white/10 bg-transparent">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link className="font-semibold text-slate-100" href="/">
-            PulseFund
+          <Link aria-label="PulseFund home" className="brand-logo" href="/">
+            <span aria-hidden="true" className="brand-logo__mark">
+              <span className="brand-logo__pulse" />
+              <span className="brand-logo__orbit brand-logo__orbit--one" />
+              <span className="brand-logo__orbit brand-logo__orbit--two" />
+            </span>
+            <span className="brand-logo__wordmark">
+              <span className="brand-logo__name">PulseFund</span>
+              <span className="brand-logo__tag">Community funding</span>
+            </span>
           </Link>
           <nav aria-label="Main navigation">
             <GooeyNav
@@ -60,6 +67,9 @@ export function AppShell({ children }: PropsWithChildren) {
           <div className="flex flex-wrap gap-4">
             <Link className="text-slate-100 hover:text-cyan-200" href="/privacy">
               Privacy
+            </Link>
+            <Link className="text-slate-100 hover:text-cyan-200" href="/admin">
+              Admin
             </Link>
           </div>
         </div>

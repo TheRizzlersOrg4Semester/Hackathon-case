@@ -39,6 +39,7 @@ describe("validateDonationInput", () => {
     expect(result.donorEmail).toBe("");
     expect(result.accessCodeMode).toBe("CREATE_NEW");
     expect(result.taxEligible).toBe(false);
+    expect(result.subscribedToUpdates).toBe(false);
   });
 
   it("throws on invalid donor email", () => {
@@ -73,5 +74,15 @@ describe("validateDonationInput", () => {
     expect(result.taxEligible).toBe(true);
     expect(result.taxIdType).toBe("CPR");
     expect(result.taxId).toBe("1234567890");
+  });
+
+  it("accepts update opt-in preference", () => {
+    const result = validateDonationInput({
+      campaignId: "campaign-1",
+      amount: 250,
+      subscribedToUpdates: true
+    });
+
+    expect(result.subscribedToUpdates).toBe(true);
   });
 });

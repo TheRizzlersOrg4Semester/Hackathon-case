@@ -182,6 +182,14 @@ export function DonationForm({ action }: DonationFormProps) {
         Keep my donation anonymous in public views
       </label>
 
+      <div className="ui-card-soft ui-panel-padding space-y-2">
+        <label className="type-body-sm flex items-center gap-2 text-secondary" htmlFor="subscribedToUpdates">
+          <input id="subscribedToUpdates" name="subscribedToUpdates" type="checkbox" />
+          Send me campaign updates about milestones and progress
+        </label>
+        <p className="type-meta text-muted">Optional simulated signup only. No real email subscription is triggered in this MVP.</p>
+      </div>
+
       <SubmitButton />
 
       {state.status === "error" ? <p className="ui-message-error">{state.message}</p> : null}

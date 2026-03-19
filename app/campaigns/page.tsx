@@ -2,6 +2,10 @@ import Link from "next/link";
 import { calculateCampaignProgress } from "@/lib/domain/campaigns";
 import { getPublishedCampaigns } from "@/lib/persistence/campaign-queries";
 
+type CampaignListPageProps = {
+  searchParams?: Promise<{ q?: string }>;
+};
+
 function toAmount(value: unknown): number {
   return Number(value);
 }
@@ -14,14 +18,43 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-export default async function CampaignListPage() {
-  const campaigns = await getPublishedCampaigns();
+export default async function CampaignListPage({ searchParams }: CampaignListPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const query = resolvedSearchParams?.q?.trim() ?? "";
+  const campaigns = await getPublishedCampaigns(query);
 
   return (
     <section className="ui-page-stack">
       <div className="ui-section-heading">
         <h1 className="type-section">Campaigns</h1>
         <p className="type-body">Support active community campaigns and follow their fundraising progress.</p>
+      </div>
+
+      <div className="ui-card-dark ui-panel-padding flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <form action="/campaigns" className="flex w-full max-w-2xl flex-col gap-3 sm:flex-row" method="get">
+          <input
+            aria-label="Search campaigns"
+            className="ui-form-input min-w-0 flex-1"
+            defaultValue={query}
+            name="q"
+            placeholder="Search campaigns by title, story, or category"
+            type="search"
+          />
+          <div className="flex gap-3">
+            <button className="ui-button-primary" type="submit">
+              Search
+            </button>
+            {query ? (
+              <Link className="ui-button-secondary" href="/campaigns">
+                Clear
+              </Link>
+            ) : null}
+          </div>
+        </form>
+
+        <p className="type-body-sm text-secondary">
+          {query ? `${campaigns.length} matching campaign${campaigns.length === 1 ? "" : "s"}` : "Browse all published campaigns"}
+        </p>
       </div>
 
       <div className="grid gap-4">
@@ -69,7 +102,9 @@ export default async function CampaignListPage() {
       </div>
 
       {campaigns.length === 0 ? (
-        <p className="ui-card-dark ui-panel-padding type-body">No published campaigns yet.</p>
+        <p className="ui-card-dark ui-panel-padding type-body">
+          {query ? `No campaigns matched "${query}".` : "No published campaigns yet."}
+        </p>
       ) : null}
     </section>
   );

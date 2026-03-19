@@ -13,6 +13,7 @@ const donationFormSchema = z.object({
   taxEligible: z.boolean().default(false),
   taxIdType: z.enum(["CPR", "CVR"]).optional(),
   taxId: z.string().optional(),
+  subscribedToUpdates: z.boolean().default(false),
   accessCodeMode: z.enum(["CREATE_NEW", "USE_EXISTING"]).default("CREATE_NEW"),
   supporterAccessCode: z.string().optional(),
   blobColor: z.string().optional()
@@ -49,6 +50,7 @@ export async function submitDonationAction(
     taxEligible: formData.get("taxEligible") === "on",
     taxIdType: getOptionalString("taxIdType"),
     taxId: getOptionalString("taxId"),
+    subscribedToUpdates: formData.get("subscribedToUpdates") === "on",
     accessCodeMode: formData.get("accessCodeMode"),
     supporterAccessCode: getOptionalString("supporterAccessCode"),
     blobColor: getOptionalString("blobColor")
@@ -72,6 +74,7 @@ export async function submitDonationAction(
       taxEligible: parsed.data.taxEligible,
       taxIdType: parsed.data.taxIdType,
       taxId: parsed.data.taxId,
+      subscribedToUpdates: parsed.data.subscribedToUpdates,
       accessCodeMode: parsed.data.accessCodeMode,
       supporterAccessCode: parsed.data.supporterAccessCode,
       blobColor: parsed.data.blobColor

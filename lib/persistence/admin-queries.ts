@@ -82,6 +82,16 @@ export async function getAdminCampaignById(id: string) {
           name: true
         }
       },
+      milestones: {
+        orderBy: [{ displayOrder: "asc" }, { targetAmount: "asc" }],
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          targetAmount: true,
+          displayOrder: true
+        }
+      },
       donations: {
         orderBy: {
           createdAt: "desc"
@@ -93,6 +103,7 @@ export async function getAdminCampaignById(id: string) {
           donorEmail: true,
           isAnonymous: true,
           donationType: true,
+          subscribedToUpdates: true,
           createdAt: true,
           thankYouAction: {
             select: {

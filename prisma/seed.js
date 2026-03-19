@@ -66,7 +66,29 @@ async function main() {
         goalAmount: 120000,
         status: CampaignStatus.PUBLISHED,
         publishedAt: new Date("2026-03-01T10:00:00Z"),
-        categoryId: education.id
+        categoryId: education.id,
+        milestones: {
+          create: [
+            {
+              title: "First classroom kit",
+              description: "Fund the first wave of refurbished laptops and setup materials.",
+              targetAmount: 20000,
+              displayOrder: 1
+            },
+            {
+              title: "Mentor workshop series",
+              description: "Unlock volunteer-led onboarding workshops for students.",
+              targetAmount: 50000,
+              displayOrder: 2
+            },
+            {
+              title: "Full 100-student rollout",
+              description: "Cover the full hardware and support plan for the entire cohort.",
+              targetAmount: 90000,
+              displayOrder: 3
+            }
+          ]
+        }
       }
     }),
     prisma.campaign.create({
@@ -80,7 +102,23 @@ async function main() {
         goalAmount: 200000,
         status: CampaignStatus.PUBLISHED,
         publishedAt: new Date("2026-02-20T11:00:00Z"),
-        categoryId: health.id
+        categoryId: health.id,
+        milestones: {
+          create: [
+            {
+              title: "Weekend staffing boost",
+              description: "Add an extra staffed weekend route.",
+              targetAmount: 40000,
+              displayOrder: 1
+            },
+            {
+              title: "Second mobile unit",
+              description: "Put a second van into operation for high-demand districts.",
+              targetAmount: 120000,
+              displayOrder: 2
+            }
+          ]
+        }
       }
     }),
     prisma.campaign.create({
@@ -94,7 +132,23 @@ async function main() {
         goalAmount: 90000,
         status: CampaignStatus.PUBLISHED,
         publishedAt: new Date("2026-03-10T09:30:00Z"),
-        categoryId: environment.id
+        categoryId: environment.id,
+        milestones: {
+          create: [
+            {
+              title: "Planting kickoff",
+              description: "Secure the first set of saplings and volunteer tools.",
+              targetAmount: 15000,
+              displayOrder: 1
+            },
+            {
+              title: "Irrigation installation",
+              description: "Install the water infrastructure for long-term care.",
+              targetAmount: 45000,
+              displayOrder: 2
+            }
+          ]
+        }
       }
     }),
     prisma.campaign.create({
@@ -142,6 +196,7 @@ async function main() {
         amount: 1500,
         donorName: "Alice Jensen",
         donorEmail: "alice@example.com",
+        subscribedToUpdates: true,
         blobColor: "#4DD2FF",
         isAnonymous: false,
         donationType: DonationType.ONE_TIME,
@@ -156,6 +211,7 @@ async function main() {
         amount: 300,
         donorName: "Private Donor",
         donorEmail: "private.donor@example.com",
+        subscribedToUpdates: false,
         blobColor: "#7A5CFA",
         isAnonymous: true,
         donationType: DonationType.ONE_TIME,
@@ -170,6 +226,7 @@ async function main() {
         amount: 2500,
         donorName: "Bob Larsen",
         donorEmail: "bob@example.com",
+        subscribedToUpdates: true,
         blobColor: "#2FD39A",
         isAnonymous: false,
         donationType: DonationType.RECURRING,
@@ -183,6 +240,7 @@ async function main() {
         amount: 800,
         donorName: null,
         donorEmail: "guest.supporter@example.com",
+        subscribedToUpdates: false,
         blobColor: "#F46D9B",
         isAnonymous: false,
         donationType: DonationType.ONE_TIME,
@@ -196,6 +254,7 @@ async function main() {
         amount: 620,
         donorName: "Jonas Madsen",
         donorEmail: "jonas.madsen@example.com",
+        subscribedToUpdates: true,
         blobColor: "#8B5CF6",
         isAnonymous: false,
         donationType: DonationType.RECURRING,
@@ -209,6 +268,7 @@ async function main() {
         amount: 420,
         donorName: "Anonymous Hero",
         donorEmail: "hero@example.com",
+        subscribedToUpdates: false,
         blobColor: "#FFA84E",
         isAnonymous: true,
         donationType: DonationType.ONE_TIME,
@@ -222,6 +282,7 @@ async function main() {
         amount: 1100,
         donorName: "Mia Christensen",
         donorEmail: "mia.christensen@example.com",
+        subscribedToUpdates: true,
         blobColor: "#1EC7B5",
         isAnonymous: false,
         donationType: DonationType.ONE_TIME,
@@ -235,6 +296,7 @@ async function main() {
         amount: 350,
         donorName: "Alice Jensen",
         donorEmail: "alice@example.com",
+        subscribedToUpdates: true,
         blobColor: "#BEEA64",
         isAnonymous: false,
         donationType: DonationType.ONE_TIME,
@@ -248,6 +310,7 @@ async function main() {
         amount: 180,
         donorName: null,
         donorEmail: "quiet.supporter@example.com",
+        subscribedToUpdates: false,
         blobColor: "#FF5F7E",
         isAnonymous: true,
         donationType: DonationType.ONE_TIME,
@@ -261,6 +324,7 @@ async function main() {
         amount: 980,
         donorName: "Freja Nielsen",
         donorEmail: "freja.nielsen@example.com",
+        subscribedToUpdates: true,
         blobColor: "#4B7CFF",
         isAnonymous: false,
         donationType: DonationType.RECURRING,
@@ -274,6 +338,7 @@ async function main() {
         amount: 260,
         donorName: "Local Business Sponsor",
         donorEmail: "sponsor@example.com",
+        subscribedToUpdates: false,
         blobColor: "#FFC764",
         isAnonymous: true,
         donationType: DonationType.ONE_TIME,

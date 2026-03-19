@@ -43,27 +43,43 @@ enum EmailStatus {
 }
 
 model Campaign {
-  id          String         @id @default(cuid())
-  title       String
-  slug        String         @unique
-  summary     String?
-  description String?
+  id            String         @id @default(cuid())
+  title         String
+  slug          String         @unique
+  summary       String?
+  description   String?
   brandImageUrl String?
-  goalAmount  Decimal        @db.Decimal(12, 2)
-  status      CampaignStatus @default(DRAFT)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  publishedAt DateTime?
-  closedAt    DateTime?
+  goalAmount    Decimal        @db.Decimal(12, 2)
+  status        CampaignStatus @default(DRAFT)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  publishedAt   DateTime?
+  closedAt      DateTime?
 
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
-  donations            Donation[]
+  donations           Donation[]
+  milestones          CampaignMilestone[]
   approvedFromRequest CampaignRequest?
 
   @@index([status])
   @@index([categoryId])
+}
+
+model CampaignMilestone {
+  id           String   @id @default(cuid())
+  campaignId   String
+  title        String
+  description  String?
+  targetAmount Decimal  @db.Decimal(12, 2)
+  displayOrder Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, displayOrder])
 }
 
 model Category {
@@ -132,6 +148,7 @@ model Donation {
   taxId          String?
   taxIdType      TaxIdType?
   taxEligible    Boolean      @default(false)
+  subscribedToUpdates Boolean @default(false)
   blobColor      String?
   isAnonymous    Boolean      @default(false)
   donationType   DonationType @default(ONE_TIME)

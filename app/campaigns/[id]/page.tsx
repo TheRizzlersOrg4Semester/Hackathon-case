@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CampaignMilestones } from "@/components/campaign-milestones";
 import { DonorBlobVisualization } from "@/components/donor-blob-visualization";
 import { calculateCampaignProgress, getPublicDonorDisplayName } from "@/lib/domain/campaigns";
 import { getPublishedCampaignById } from "@/lib/persistence/campaign-queries";
@@ -94,6 +95,17 @@ export default async function CampaignDetailPage({ params }: CampaignDetailPageP
           </div>
         </div>
       </div>
+
+      <CampaignMilestones
+        milestones={campaign.milestones.map((milestone) => ({
+          id: milestone.id,
+          title: milestone.title,
+          description: milestone.description,
+          targetAmount: toAmount(milestone.targetAmount),
+          displayOrder: milestone.displayOrder
+        }))}
+        raisedAmount={progress.raisedAmount}
+      />
 
       <div className="landing-panel p-5 md:p-6">
         <DonorBlobVisualization donations={publicDonations} />

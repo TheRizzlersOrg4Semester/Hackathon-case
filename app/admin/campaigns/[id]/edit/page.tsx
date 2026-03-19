@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AdminMilestoneFields } from "@/components/admin-milestone-fields";
 import { AnalyticsKpiCard } from "@/components/analytics-kpi-card";
 import { AnalyticsSplitCard } from "@/components/analytics-split-card";
 import { AnalyticsTimeSeriesChart } from "@/components/analytics-time-series-chart";
@@ -71,6 +72,7 @@ export default async function AdminEditCampaignPage({ params }: AdminEditCampaig
   };
 
   const recentActivity = campaign.donations.slice(0, 5);
+  const updateSubscriberCount = campaign.donations.filter((donation) => donation.subscribedToUpdates).length;
   const updateAction = updateCampaignAction.bind(null, campaign.id);
   const publishAction = publishCampaignAction.bind(null, campaign.id);
   const closeAction = closeCampaignAction.bind(null, campaign.id);
@@ -294,6 +296,16 @@ export default async function AdminEditCampaignPage({ params }: AdminEditCampaig
             />
           </label>
 
+          <AdminMilestoneFields
+            milestones={campaign.milestones.map((milestone) => ({
+              id: milestone.id,
+              title: milestone.title,
+              description: milestone.description,
+              targetAmount: toAmount(milestone.targetAmount),
+              displayOrder: milestone.displayOrder
+            }))}
+          />
+
           <button className="rounded-full bg-white px-5 py-2.5 font-semibold text-slate-900" type="submit">
             Save campaign changes
           </button>
@@ -329,7 +341,9 @@ export default async function AdminEditCampaignPage({ params }: AdminEditCampaig
 
       <div className="analytics-panel space-y-3 p-6 text-slate-100">
         <h2 className="text-xl font-semibold">Donations ({campaign.donations.length})</h2>
-        <p className="text-sm text-slate-200">Delete remains intentionally simple for demo reset and testing workflows.</p>
+        <p className="text-sm text-slate-200">
+          Delete remains intentionally simple for demo reset and testing workflows. Update signups captured: {updateSubscriberCount}.
+        </p>
 
         {campaign.donations.length === 0 ? (
           <p className="text-sm text-slate-300">No donations yet.</p>
@@ -342,6 +356,7 @@ export default async function AdminEditCampaignPage({ params }: AdminEditCampaig
                   <th className="px-2 py-2">Email</th>
                   <th className="px-2 py-2">Amount</th>
                   <th className="px-2 py-2">Type</th>
+                  <th className="px-2 py-2">Updates</th>
                   <th className="px-2 py-2">Tier</th>
                   <th className="px-2 py-2">Mail</th>
                   <th className="px-2 py-2">Created</th>
@@ -358,6 +373,7 @@ export default async function AdminEditCampaignPage({ params }: AdminEditCampaig
                       <td className="px-2 py-2">{donation.donorEmail ?? "-"}</td>
                       <td className="px-2 py-2">{formatCurrency(toAmount(donation.amount))}</td>
                       <td className="px-2 py-2">{donation.donationType}</td>
+                      <td className="px-2 py-2">{donation.subscribedToUpdates ? "Opted in" : "-"}</td>
                       <td className="px-2 py-2">{donation.thankYouAction?.tier ?? "-"}</td>
                       <td className="px-2 py-2">{donation.thankYouAction?.emailStatus ?? "PENDING"}</td>
                       <td className="px-2 py-2">

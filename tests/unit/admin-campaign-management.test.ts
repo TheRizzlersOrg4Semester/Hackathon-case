@@ -2,8 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { CampaignStatus } from "@prisma/client";
 import { assertCampaignStatusTransition, canTransitionCampaignStatus } from "../../lib/domain/campaign-admin";
 import {
+  createCampaignByAdmin,
   deleteDonationByAdmin,
   transitionCampaignStatusByAdmin,
+  updateCampaignByAdmin,
   type CampaignAdminPersistence
 } from "../../lib/services/admin-campaigns";
 
@@ -97,5 +99,126 @@ describe("admin donation deletion", () => {
     };
 
     await expect(deleteDonationByAdmin("missing-donation", { persistence })).rejects.toThrow("Donation not found.");
+  });
+});
+
+describe("campaign milestone management", () => {
+  it("passes normalized milestones into campaign creation", async () => {
+    const createCampaign = vi.fn(async () => ({ id: "campaign-1" }));
+
+    const persistence: CampaignAdminPersistence = {
+      async getCampaignStatusById() {
+        throw new Error("not used");
+      },
+      createCampaign,
+      async updateCampaign() {
+        throw new Error("not used");
+      },
+      async updateCampaignStatus() {
+        throw new Error("not used");
+      },
+      async deleteDonationById() {
+        throw new Error("not used");
+      }
+    };
+
+    await createCampaignByAdmin(
+      {
+        title: "Community Garden",
+        slug: "community-garden",
+        summary: "Help expand our local garden.",
+        description: "Funding adds raised beds, a tool shed, and volunteer workshops for the neighborhood.",
+        goalAmount: 15000,
+        milestones: [
+          {
+            title: "Tool shed",
+            description: "Weatherproof storage for equipment.",
+            targetAmount: 9000,
+            displayOrder: 2
+          },
+          {
+            title: "Raised beds",
+            description: "First build phase for the growing area.",
+            targetAmount: 5000,
+            displayOrder: 1
+          }
+        ]
+      },
+      { persistence }
+    );
+
+    expect(createCampaign).toHaveBeenCalledWith(
+      expect.objectContaining({
+        milestones: [
+          {
+            title: "Raised beds",
+            description: "First build phase for the growing area.",
+            targetAmount: 5000,
+            displayOrder: 1
+          },
+          {
+            title: "Tool shed",
+            description: "Weatherproof storage for equipment.",
+            targetAmount: 9000,
+            displayOrder: 2
+          }
+        ]
+      })
+    );
+  });
+
+  it("passes milestone replacements into campaign updates", async () => {
+    const updateCampaign = vi.fn(async () => undefined);
+
+    const persistence: CampaignAdminPersistence = {
+      async getCampaignStatusById() {
+        throw new Error("not used");
+      },
+      async createCampaign() {
+        throw new Error("not used");
+      },
+      updateCampaign,
+      async updateCampaignStatus() {
+        throw new Error("not used");
+      },
+      async deleteDonationById() {
+        throw new Error("not used");
+      }
+    };
+
+    await updateCampaignByAdmin(
+      "campaign-1",
+      {
+        title: "Community Garden",
+        slug: "community-garden",
+        summary: "Help expand our local garden.",
+        description: "Funding adds raised beds, a tool shed, and volunteer workshops for the neighborhood.",
+        goalAmount: 15000,
+        milestones: [
+          {
+            id: "m-1",
+            title: "Raised beds",
+            description: "",
+            targetAmount: 5000,
+            displayOrder: 1
+          }
+        ]
+      },
+      { persistence }
+    );
+
+    expect(updateCampaign).toHaveBeenCalledWith(
+      "campaign-1",
+      expect.objectContaining({
+        milestones: [
+          {
+            title: "Raised beds",
+            description: null,
+            targetAmount: 5000,
+            displayOrder: 1
+          }
+        ]
+      })
+    );
   });
 });

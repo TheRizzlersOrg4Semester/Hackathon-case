@@ -12,6 +12,27 @@ import {
 import { reviewCampaignRequest } from "@/lib/services/campaign-requests";
 
 function readCampaignFormData(formData: FormData) {
+  const milestoneIds = formData.getAll("milestoneId");
+  const milestoneTitles = formData.getAll("milestoneTitle");
+  const milestoneDescriptions = formData.getAll("milestoneDescription");
+  const milestoneTargetAmounts = formData.getAll("milestoneTargetAmount");
+  const milestoneDisplayOrders = formData.getAll("milestoneDisplayOrder");
+  const milestoneRowCount = Math.max(
+    milestoneIds.length,
+    milestoneTitles.length,
+    milestoneDescriptions.length,
+    milestoneTargetAmounts.length,
+    milestoneDisplayOrders.length
+  );
+
+  const milestones = Array.from({ length: milestoneRowCount }, (_, index) => ({
+    id: String(milestoneIds[index] ?? ""),
+    title: String(milestoneTitles[index] ?? "").trim(),
+    description: String(milestoneDescriptions[index] ?? "").trim(),
+    targetAmount: Number(milestoneTargetAmounts[index] ?? 0),
+    displayOrder: Number(milestoneDisplayOrders[index] ?? index + 1)
+  })).filter((milestone) => milestone.title.length > 0 || milestone.description.length > 0 || milestone.targetAmount > 0);
+
   return {
     title: String(formData.get("title") ?? ""),
     slug: String(formData.get("slug") ?? ""),
@@ -19,7 +40,8 @@ function readCampaignFormData(formData: FormData) {
     summary: String(formData.get("summary") ?? ""),
     description: String(formData.get("description") ?? ""),
     goalAmount: Number(formData.get("goalAmount") ?? 0),
-    brandImageUrl: String(formData.get("brandImageUrl") ?? "")
+    brandImageUrl: String(formData.get("brandImageUrl") ?? ""),
+    milestones
   };
 }
 

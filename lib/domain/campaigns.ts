@@ -13,6 +13,20 @@ export type CampaignProgress = {
   donorCount: number;
 };
 
+export type CampaignMilestone = {
+  id: string;
+  title: string;
+  description: string | null;
+  targetAmount: number;
+  displayOrder: number;
+};
+
+export type CampaignMilestoneStatus = "REACHED" | "UPCOMING";
+
+export type CampaignMilestoneView = CampaignMilestone & {
+  status: CampaignMilestoneStatus;
+};
+
 export function calculateCampaignProgress(goalAmount: number, donations: Array<{ amount: number }>): CampaignProgress {
   const raisedAmount = donations.reduce((sum, donation) => sum + donation.amount, 0);
   const rawPercent = goalAmount <= 0 ? 0 : (raisedAmount / goalAmount) * 100;
@@ -36,4 +50,26 @@ export function getPublicDonorDisplayName(donation: Pick<DonationFeedItem, "isAn
   }
 
   return "Guest donor";
+}
+
+export function getCampaignMilestoneStatus(raisedAmount: number, targetAmount: number): CampaignMilestoneStatus {
+  return raisedAmount >= targetAmount ? "REACHED" : "UPCOMING";
+}
+
+export function buildCampaignMilestoneViews(
+  raisedAmount: number,
+  milestones: CampaignMilestone[]
+): CampaignMilestoneView[] {
+  return [...milestones]
+    .sort((left, right) => {
+      if (left.displayOrder !== right.displayOrder) {
+        return left.displayOrder - right.displayOrder;
+      }
+
+      return left.targetAmount - right.targetAmount;
+    })
+    .map((milestone) => ({
+      ...milestone,
+      status: getCampaignMilestoneStatus(raisedAmount, milestone.targetAmount)
+    }));
 }

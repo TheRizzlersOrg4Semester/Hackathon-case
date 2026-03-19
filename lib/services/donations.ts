@@ -29,6 +29,7 @@ const donationInputSchema = z.object({
   taxEligible: z.coerce.boolean().default(false),
   taxIdType: z.enum(["CPR", "CVR"]).optional(),
   taxId: z.string().trim().optional(),
+  subscribedToUpdates: z.coerce.boolean().default(false),
   accessCodeMode: z.enum(["CREATE_NEW", "USE_EXISTING"]).default("CREATE_NEW"),
   supporterAccessCode: z.string().trim().optional(),
   blobColor: z.string().trim().optional()
@@ -88,6 +89,7 @@ export type DonationFlowPersistence = {
     taxEligible: boolean;
     taxIdType: TaxIdType | null;
     taxId: string | null;
+    subscribedToUpdates: boolean;
     blobColor: string | null;
   }) => Promise<CreatedDonation>;
   createDonationReceipt: (data: {
@@ -253,6 +255,7 @@ function getDefaultDonationPersistence(tx: Prisma.TransactionClient): DonationFl
           taxEligible: data.taxEligible,
           taxIdType: data.taxIdType,
           taxId: data.taxId,
+          subscribedToUpdates: data.subscribedToUpdates,
           blobColor: data.blobColor
         },
         select: {
@@ -367,6 +370,7 @@ export async function createDonationWithSimulatedPayment(
       taxEligible,
       taxIdType,
       taxId,
+      subscribedToUpdates: validated.subscribedToUpdates,
       blobColor: normalizeBlobColor(validated.blobColor)
     });
 

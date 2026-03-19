@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createCampaignAction } from "@/app/admin/actions";
+import { AdminMilestoneFields } from "@/components/admin-milestone-fields";
 import { getAdminCategories } from "@/lib/persistence/admin-queries";
 
 export default async function AdminNewCampaignPage() {
@@ -55,6 +56,8 @@ export default async function AdminNewCampaignPage() {
           Goal amount (DKK)
           <input className="w-full rounded-lg border border-white/30 bg-white/90 px-3 py-2 text-slate-900" min={1} name="goalAmount" required step="1" type="number" />
         </label>
+
+        <AdminMilestoneFields />
 
         <div className="flex gap-3">
           <button className="rounded-lg bg-white px-4 py-2 font-semibold text-slate-900" type="submit">

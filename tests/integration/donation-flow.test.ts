@@ -87,6 +87,7 @@ describe("createDonationWithSimulatedPayment", () => {
             taxEligible: false,
             taxIdType: null,
             taxId: null,
+            subscribedToUpdates: false,
             blobColor: "#4DD2FF"
           }
         },
@@ -116,6 +117,8 @@ describe("createDonationWithSimulatedPayment", () => {
   });
 
   it("reuses an existing supporter access code", async () => {
+    let subscribedToUpdates: boolean | null = null;
+
     const persistence: DonationFlowPersistence = {
       async getPublishedCampaignById() {
         return { id: "campaign-1", title: "Campaign One", summary: "Help launch the campaign." };
@@ -134,6 +137,7 @@ describe("createDonationWithSimulatedPayment", () => {
         throw new Error("should not run");
       },
       async createDonation(data) {
+        subscribedToUpdates = data.subscribedToUpdates;
         return {
           id: "donation-1",
           amount: new Prisma.Decimal(data.amount)
@@ -153,6 +157,7 @@ describe("createDonationWithSimulatedPayment", () => {
         amount: 100,
         donationType: "ONE_TIME",
         isAnonymous: false,
+        subscribedToUpdates: true,
         accessCodeMode: "USE_EXISTING",
         supporterAccessCode: "pf-ab12-cd34"
       },
@@ -161,6 +166,7 @@ describe("createDonationWithSimulatedPayment", () => {
 
     expect(result.supporterAccessCode).toBe("PF-AB12-CD34");
     expect(result.supporterAccessCodeCreated).toBe(false);
+    expect(subscribedToUpdates).toBe(true);
   });
 
   it("fails when campaign is not published", async () => {

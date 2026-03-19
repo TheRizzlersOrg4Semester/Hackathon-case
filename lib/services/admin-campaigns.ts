@@ -21,7 +21,18 @@ const campaignInputSchema = z.object({
     .optional()
     .refine((value) => !value || z.string().url().safeParse(value).success, {
       message: "Campaign image/logo must be a valid URL."
-    })
+    }),
+  milestones: z
+    .array(
+      z.object({
+        id: z.string().trim().optional(),
+        title: z.string().trim().min(3).max(120),
+        description: z.string().trim().max(400).optional(),
+        targetAmount: z.coerce.number().positive().max(100000000),
+        displayOrder: z.coerce.number().int().positive().max(999)
+      })
+    )
+    .default([])
 });
 
 export type CampaignAdminInput = z.input<typeof campaignInputSchema>;
@@ -46,6 +57,12 @@ export type CampaignAdminPersistence = {
     goalAmount: number;
     categoryId: string | null;
     brandImageUrl: string | null;
+    milestones: Array<{
+      title: string;
+      description: string | null;
+      targetAmount: number;
+      displayOrder: number;
+    }>;
   }) => Promise<CampaignRecord>;
   updateCampaign: (
     campaignId: string,
@@ -57,6 +74,12 @@ export type CampaignAdminPersistence = {
       goalAmount: number;
       categoryId: string | null;
       brandImageUrl: string | null;
+      milestones: Array<{
+        title: string;
+        description: string | null;
+        targetAmount: number;
+        displayOrder: number;
+      }>;
     }
   ) => Promise<void>;
   updateCampaignStatus: (
@@ -83,6 +106,30 @@ export function validateCampaignAdminInput(input: CampaignAdminInput): ValidCamp
   return campaignInputSchema.parse(input);
 }
 
+function normalizeMilestones(
+  milestones: ValidCampaignAdminInput["milestones"]
+): Array<{
+  title: string;
+  description: string | null;
+  targetAmount: number;
+  displayOrder: number;
+}> {
+  return [...milestones]
+    .map((milestone) => ({
+      title: milestone.title.trim(),
+      description: normalizeOptionalString(milestone.description),
+      targetAmount: milestone.targetAmount,
+      displayOrder: milestone.displayOrder
+    }))
+    .sort((left, right) => {
+      if (left.displayOrder !== right.displayOrder) {
+        return left.displayOrder - right.displayOrder;
+      }
+
+      return left.targetAmount - right.targetAmount;
+    });
+}
+
 function getDefaultAdminPersistence(tx: Prisma.TransactionClient): CampaignAdminPersistence {
   return {
     async getCampaignStatusById(campaignId) {
@@ -104,7 +151,17 @@ function getDefaultAdminPersistence(tx: Prisma.TransactionClient): CampaignAdmin
           goalAmount: data.goalAmount,
           categoryId: data.categoryId,
           brandImageUrl: data.brandImageUrl,
-          status: CampaignStatus.DRAFT
+          status: CampaignStatus.DRAFT,
+          milestones: data.milestones.length
+            ? {
+                create: data.milestones.map((milestone) => ({
+                  title: milestone.title,
+                  description: milestone.description,
+                  targetAmount: milestone.targetAmount,
+                  displayOrder: milestone.displayOrder
+                }))
+              }
+            : undefined
         },
         select: {
           id: true
@@ -121,7 +178,20 @@ function getDefaultAdminPersistence(tx: Prisma.TransactionClient): CampaignAdmin
           description: data.description,
           goalAmount: data.goalAmount,
           categoryId: data.categoryId,
-          brandImageUrl: data.brandImageUrl
+          brandImageUrl: data.brandImageUrl,
+          milestones: data.milestones.length
+            ? {
+                deleteMany: {},
+                create: data.milestones.map((milestone) => ({
+                  title: milestone.title,
+                  description: milestone.description,
+                  targetAmount: milestone.targetAmount,
+                  displayOrder: milestone.displayOrder
+                }))
+              }
+            : {
+                deleteMany: {}
+              }
         }
       });
     },
@@ -163,7 +233,8 @@ export async function createCampaignByAdmin(
       description: validated.description,
       goalAmount: validated.goalAmount,
       categoryId: normalizeOptionalString(validated.categoryId),
-      brandImageUrl: normalizeOptionalString(validated.brandImageUrl)
+      brandImageUrl: normalizeOptionalString(validated.brandImageUrl),
+      milestones: normalizeMilestones(validated.milestones)
     });
 
     return {
@@ -195,7 +266,8 @@ export async function updateCampaignByAdmin(
       description: validated.description,
       goalAmount: validated.goalAmount,
       categoryId: normalizeOptionalString(validated.categoryId),
-      brandImageUrl: normalizeOptionalString(validated.brandImageUrl)
+      brandImageUrl: normalizeOptionalString(validated.brandImageUrl),
+      milestones: normalizeMilestones(validated.milestones)
     });
   };
 

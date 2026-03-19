@@ -335,6 +335,86 @@ a {
   line-height: 1.4;
 }
 
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.875rem;
+  text-decoration: none;
+}
+
+.brand-logo__mark {
+  position: relative;
+  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background:
+    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0)),
+    linear-gradient(145deg, rgba(8, 24, 44, 0.96), rgba(18, 57, 83, 0.9));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 12px 24px rgba(2, 6, 23, 0.28);
+}
+
+.brand-logo__pulse {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 9999px;
+  background: radial-gradient(circle, #d5fbff 0%, #7dd3fc 40%, #2dd4bf 100%);
+  box-shadow:
+    0 0 0 0.3rem rgba(45, 212, 191, 0.1),
+    0 0 20px rgba(125, 211, 252, 0.35);
+}
+
+.brand-logo__orbit {
+  position: absolute;
+  border-radius: 9999px;
+  border: 1px solid rgba(191, 219, 254, 0.34);
+}
+
+.brand-logo__orbit--one {
+  width: 1.7rem;
+  height: 1.05rem;
+  transform: rotate(28deg);
+}
+
+.brand-logo__orbit--two {
+  width: 1.7rem;
+  height: 1.05rem;
+  transform: rotate(-28deg);
+  border-color: rgba(153, 246, 228, 0.3);
+}
+
+.brand-logo__wordmark {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+}
+
+.brand-logo__name {
+  color: #f8fafc;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.brand-logo__tag {
+  color: rgba(186, 230, 253, 0.82);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.brand-logo:hover .brand-logo__name {
+  color: #cffafe;
+}
+
 .donor-blob {
   position: absolute;
   border: 0;
