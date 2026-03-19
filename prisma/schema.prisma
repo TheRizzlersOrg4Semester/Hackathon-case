@@ -24,6 +24,11 @@ enum DonationType {
   RECURRING
 }
 
+enum TaxIdType {
+  CPR
+  CVR
+}
+
 enum ThankYouTier {
   BASIC
   PERSONAL
@@ -124,6 +129,9 @@ model Donation {
   amount         Decimal      @db.Decimal(12, 2)
   donorName      String?
   donorEmail     String?
+  taxId          String?
+  taxIdType      TaxIdType?
+  taxEligible    Boolean      @default(false)
   blobColor      String?
   isAnonymous    Boolean      @default(false)
   donationType   DonationType @default(ONE_TIME)
@@ -139,6 +147,7 @@ model Donation {
   @@index([campaignId, createdAt])
   @@index([userId, createdAt])
   @@index([donationAccessId, createdAt])
+  @@index([taxId, createdAt])
 }
 
 model DonationReceipt {

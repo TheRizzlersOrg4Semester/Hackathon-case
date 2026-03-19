@@ -84,6 +84,9 @@ describe("createDonationWithSimulatedPayment", () => {
             isAnonymous: true,
             donorName: "Internal Donor",
             donorEmail: "internal@example.com",
+            taxEligible: false,
+            taxIdType: null,
+            taxId: null,
             blobColor: "#4DD2FF"
           }
         },

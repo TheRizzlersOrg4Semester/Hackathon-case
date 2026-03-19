@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createDonationWithSimulatedPayment } from "@/lib/services/donations";
 
@@ -9,6 +10,9 @@ const donationFormSchema = z.object({
   isAnonymous: z.boolean().default(false),
   donorName: z.string().optional(),
   donorEmail: z.string().optional(),
+  taxEligible: z.boolean().default(false),
+  taxIdType: z.enum(["CPR", "CVR"]).optional(),
+  taxId: z.string().optional(),
   accessCodeMode: z.enum(["CREATE_NEW", "USE_EXISTING"]).default("CREATE_NEW"),
   supporterAccessCode: z.string().optional(),
   blobColor: z.string().optional()
@@ -42,6 +46,9 @@ export async function submitDonationAction(
     isAnonymous: formData.get("isAnonymous") === "on",
     donorName: getOptionalString("donorName"),
     donorEmail: getOptionalString("donorEmail"),
+    taxEligible: formData.get("taxEligible") === "on",
+    taxIdType: getOptionalString("taxIdType"),
+    taxId: getOptionalString("taxId"),
     accessCodeMode: formData.get("accessCodeMode"),
     supporterAccessCode: getOptionalString("supporterAccessCode"),
     blobColor: getOptionalString("blobColor")
@@ -62,10 +69,21 @@ export async function submitDonationAction(
       isAnonymous: parsed.data.isAnonymous,
       donorName: parsed.data.donorName,
       donorEmail: parsed.data.donorEmail,
+      taxEligible: parsed.data.taxEligible,
+      taxIdType: parsed.data.taxIdType,
+      taxId: parsed.data.taxId,
       accessCodeMode: parsed.data.accessCodeMode,
       supporterAccessCode: parsed.data.supporterAccessCode,
       blobColor: parsed.data.blobColor
     });
+
+    revalidatePath("/");
+    revalidatePath("/campaigns");
+    revalidatePath(`/campaigns/${campaignId}`);
+    revalidatePath("/admin");
+    revalidatePath("/admin/campaigns");
+    revalidatePath(`/admin/campaigns/${campaignId}/edit`);
+    revalidatePath("/my-donations");
 
     return {
       status: "success",

@@ -54,6 +54,16 @@ export function AppShell({ children }: PropsWithChildren) {
         </div>
       </header>
       <main className="relative z-10 mx-auto max-w-6xl px-6 py-10">{children}</main>
+      <footer className="relative z-20 border-t border-white/10 bg-transparent">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-6 text-sm text-slate-300 md:flex-row md:items-center md:justify-between">
+          <p>PulseFund MVP demo. Privacy, analytics, and tax handling are intentionally lightweight.</p>
+          <div className="flex flex-wrap gap-4">
+            <Link className="text-slate-100 hover:text-cyan-200" href="/privacy">
+              Privacy
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

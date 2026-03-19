@@ -38,6 +38,7 @@ describe("validateDonationInput", () => {
     expect(result.isAnonymous).toBe(false);
     expect(result.donorEmail).toBe("");
     expect(result.accessCodeMode).toBe("CREATE_NEW");
+    expect(result.taxEligible).toBe(false);
   });
 
   it("throws on invalid donor email", () => {
@@ -48,5 +49,29 @@ describe("validateDonationInput", () => {
         donorEmail: "not-an-email"
       })
     ).toThrow("Invalid donor email");
+  });
+
+  it("requires tax id details when tax deduction is enabled", () => {
+    expect(() =>
+      validateDonationInput({
+        campaignId: "campaign-1",
+        amount: 250,
+        taxEligible: true
+      })
+    ).toThrow("Choose CPR or CVR for tax deduction handling.");
+  });
+
+  it("accepts tax deduction fields when provided", () => {
+    const result = validateDonationInput({
+      campaignId: "campaign-1",
+      amount: 250,
+      taxEligible: true,
+      taxIdType: "CPR",
+      taxId: " 1234567890 "
+    });
+
+    expect(result.taxEligible).toBe(true);
+    expect(result.taxIdType).toBe("CPR");
+    expect(result.taxId).toBe("1234567890");
   });
 });

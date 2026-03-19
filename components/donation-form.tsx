@@ -31,6 +31,7 @@ export function DonationForm({ action }: DonationFormProps) {
   const [state, formAction] = useActionState(action, initialState);
   const [accessCodeMode, setAccessCodeMode] = useState<"CREATE_NEW" | "USE_EXISTING">("CREATE_NEW");
   const [selectedBlobColor, setSelectedBlobColor] = useState<string>(DONATION_BLOB_COLOR_OPTIONS[0].value);
+  const [useTaxDeduction, setUseTaxDeduction] = useState(false);
 
   return (
     <form action={formAction} className="space-y-5 rounded-xl border border-brand-100 bg-white p-5 shadow-sm">
@@ -115,6 +116,40 @@ export function DonationForm({ action }: DonationFormProps) {
         </label>
         <input className="rounded-md border border-brand-100 px-3 py-2" id="donorEmail" name="donorEmail" type="email" />
       </div>
+
+      <fieldset className="space-y-3 rounded-md border border-brand-100 p-3">
+        <legend className="px-1 text-sm font-semibold text-brand-900">Tax deduction (MVP)</legend>
+
+        <label className="flex items-center gap-2 text-sm text-brand-900" htmlFor="taxEligible">
+          <input
+            checked={useTaxDeduction}
+            id="taxEligible"
+            name="taxEligible"
+            onChange={(event) => setUseTaxDeduction(event.target.checked)}
+            type="checkbox"
+          />
+          Use for tax deduction
+        </label>
+
+        {useTaxDeduction ? (
+          <div className="grid gap-3 md:grid-cols-[180px_minmax(0,1fr)]">
+            <label className="grid gap-1 text-sm font-medium text-brand-900">
+              Tax ID type
+              <select className="rounded-md border border-brand-100 px-3 py-2" defaultValue="CPR" name="taxIdType">
+                <option value="CPR">CPR</option>
+                <option value="CVR">CVR</option>
+              </select>
+            </label>
+
+            <label className="grid gap-1 text-sm font-medium text-brand-900">
+              Tax ID
+              <input className="rounded-md border border-brand-100 px-3 py-2" name="taxId" placeholder="Enter CPR or CVR" required />
+            </label>
+          </div>
+        ) : null}
+
+        <p className="text-xs text-brand-700">Demo only. PulseFund stores the identifier for later admin aggregation and does not send it to SKAT.</p>
+      </fieldset>
 
       <fieldset className="space-y-2">
         <legend className="text-sm font-semibold text-brand-900">Blob color</legend>

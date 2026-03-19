@@ -1,4 +1,4 @@
-import { CampaignStatus, DonationType, EmailStatus, Prisma, ThankYouTier } from "@prisma/client";
+import { CampaignStatus, DonationType, EmailStatus, Prisma, TaxIdType, ThankYouTier } from "@prisma/client";
 import { z } from "zod";
 import {
   generateSupporterAccessCode,
@@ -26,9 +26,32 @@ const donationInputSchema = z.object({
     .refine((value) => !value || z.string().email().safeParse(value).success, {
       message: "Invalid donor email"
     }),
+  taxEligible: z.coerce.boolean().default(false),
+  taxIdType: z.enum(["CPR", "CVR"]).optional(),
+  taxId: z.string().trim().optional(),
   accessCodeMode: z.enum(["CREATE_NEW", "USE_EXISTING"]).default("CREATE_NEW"),
   supporterAccessCode: z.string().trim().optional(),
   blobColor: z.string().trim().optional()
+}).superRefine((value, ctx) => {
+  if (!value.taxEligible) {
+    return;
+  }
+
+  if (!value.taxIdType) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Choose CPR or CVR for tax deduction handling.",
+      path: ["taxIdType"]
+    });
+  }
+
+  if (!value.taxId || value.taxId.trim().length < 4) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Enter a tax identifier to mark the donation as tax eligible.",
+      path: ["taxId"]
+    });
+  }
 });
 
 export type DonationInput = z.input<typeof donationInputSchema>;
@@ -62,6 +85,9 @@ export type DonationFlowPersistence = {
     isAnonymous: boolean;
     donorName: string | null;
     donorEmail: string | null;
+    taxEligible: boolean;
+    taxIdType: TaxIdType | null;
+    taxId: string | null;
     blobColor: string | null;
   }) => Promise<CreatedDonation>;
   createDonationReceipt: (data: {
@@ -97,6 +123,16 @@ function normalizeBlobColor(value?: string): string | null {
   }
 
   return upper;
+}
+
+function normalizeTaxId(value?: string): string | null {
+  const normalized = normalizeOptionalString(value);
+
+  if (!normalized) {
+    return null;
+  }
+
+  return normalized.replace(/\s+/g, "").toUpperCase();
 }
 
 export function classifyThankYouTier(amount: number): ThankYouTier {
@@ -214,6 +250,9 @@ function getDefaultDonationPersistence(tx: Prisma.TransactionClient): DonationFl
           isAnonymous: data.isAnonymous,
           donorName: data.donorName,
           donorEmail: data.donorEmail,
+          taxEligible: data.taxEligible,
+          taxIdType: data.taxIdType,
+          taxId: data.taxId,
           blobColor: data.blobColor
         },
         select: {
@@ -313,6 +352,9 @@ export async function createDonationWithSimulatedPayment(
     const accessResolution = await resolveDonationAccess(validated, persistence, randomFloat);
     const donorName = normalizeOptionalString(validated.donorName);
     const donorEmail = normalizeOptionalString(validated.donorEmail);
+    const taxEligible = validated.taxEligible;
+    const taxIdType = taxEligible ? (validated.taxIdType ?? null) : null;
+    const taxId = taxEligible ? normalizeTaxId(validated.taxId) : null;
 
     const donation = await persistence.createDonation({
       campaignId: validated.campaignId,
@@ -322,6 +364,9 @@ export async function createDonationWithSimulatedPayment(
       isAnonymous: validated.isAnonymous,
       donorName,
       donorEmail,
+      taxEligible,
+      taxIdType,
+      taxId,
       blobColor: normalizeBlobColor(validated.blobColor)
     });
 
