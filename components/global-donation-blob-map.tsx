@@ -350,19 +350,19 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
 
   if (blobs.length === 0) {
     return (
-      <section className="landing-panel space-y-3">
-        <h2 className="text-2xl font-semibold text-white">Global donation blob map</h2>
-        <p className="text-sm text-slate-200">No donations available yet. Seed data or new donations will populate this view.</p>
+      <section className="landing-panel ui-section-stack">
+        <h2 className="type-section text-white">Global donation blob map</h2>
+        <p className="type-body-sm text-muted">No donations available yet. Seed data or new donations will populate this view.</p>
       </section>
     );
   }
 
   return (
-    <section className="landing-panel space-y-5">
+    <section className="landing-panel ui-section-stack">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-2">
-          <h2 className="text-2xl font-semibold text-white">Global donation blob map</h2>
-          <p className="max-w-2xl text-sm text-slate-200">
+          <h2 className="type-section text-white">Global donation blob map</h2>
+          <p className="type-body-sm max-w-2xl text-muted">
             Grab a blob, yeet it across the field, and watch the whole puddle turn into a tiny jelly riot.
           </p>
           {campaignIdentityItems.length > 0 ? (
@@ -387,7 +387,7 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
             </div>
           ) : null}
         </div>
-        <Link className="rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur" href="/campaigns">
+        <Link className="ui-button-secondary" href="/campaigns">
           Explore all campaigns
         </Link>
       </div>

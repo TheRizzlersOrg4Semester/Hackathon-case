@@ -11,58 +11,58 @@ export function CampaignRequestForm() {
   const [state, formAction, isPending] = useActionState(submitCampaignRequestAction, initialState);
 
   return (
-    <form action={formAction} className="space-y-5 rounded-2xl border border-white/20 bg-white/90 p-6 shadow-lg backdrop-blur">
+    <form action={formAction} className="ui-form-panel space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="space-y-1 text-sm font-medium text-slate-900">
+        <label className="ui-form-label">
           Requester name
-          <input className="w-full rounded-lg border border-slate-300 px-3 py-2" name="requesterName" required />
+          <input className="ui-form-input" name="requesterName" required />
         </label>
-        <label className="space-y-1 text-sm font-medium text-slate-900">
+        <label className="ui-form-label">
           Requester email
-          <input className="w-full rounded-lg border border-slate-300 px-3 py-2" name="requesterEmail" required type="email" />
+          <input className="ui-form-input" name="requesterEmail" required type="email" />
         </label>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="space-y-1 text-sm font-medium text-slate-900">
+        <label className="ui-form-label">
           Campaign title
-          <input className="w-full rounded-lg border border-slate-300 px-3 py-2" name="title" required />
+          <input className="ui-form-input" name="title" required />
         </label>
-        <label className="space-y-1 text-sm font-medium text-slate-900">
+        <label className="ui-form-label">
           Category
-          <input className="w-full rounded-lg border border-slate-300 px-3 py-2" name="category" placeholder="Education, Health, Environment..." required />
+          <input className="ui-form-input" name="category" placeholder="Education, Health, Environment..." required />
         </label>
       </div>
 
-      <label className="block space-y-1 text-sm font-medium text-slate-900">
+      <label className="ui-form-label block">
         One-line summary
-        <input className="w-full rounded-lg border border-slate-300 px-3 py-2" name="summary" required />
+        <input className="ui-form-input" name="summary" required />
       </label>
 
-      <label className="block space-y-1 text-sm font-medium text-slate-900">
+      <label className="ui-form-label block">
         Full description
-        <textarea className="min-h-32 w-full rounded-lg border border-slate-300 px-3 py-2" name="description" required />
+        <textarea className="ui-form-textarea min-h-32" name="description" required />
       </label>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="space-y-1 text-sm font-medium text-slate-900">
+        <label className="ui-form-label">
           Goal amount (DKK)
-          <input className="w-full rounded-lg border border-slate-300 px-3 py-2" min={1} name="goalAmount" required step="1" type="number" />
+          <input className="ui-form-input" min={1} name="goalAmount" required step="1" type="number" />
         </label>
-        <label className="space-y-1 text-sm font-medium text-slate-900">
+        <label className="ui-form-label">
           Motivation
-          <textarea className="min-h-24 w-full rounded-lg border border-slate-300 px-3 py-2" name="motivation" required />
+          <textarea className="ui-form-textarea min-h-24" name="motivation" required />
         </label>
       </div>
 
       {state.message ? (
-        <p className={`rounded-lg px-3 py-2 text-sm ${state.status === "error" ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-800"}`}>
+        <p className={state.status === "error" ? "ui-message-error" : "ui-message-success"}>
           {state.message}
         </p>
       ) : null}
 
       <button
-        className="rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+        className="ui-button-primary"
         disabled={isPending}
         type="submit"
       >

@@ -18,10 +18,10 @@ export default async function DonationPage({ params }: DonationPageProps) {
   const action = submitDonationAction.bind(null, campaignId);
 
   return (
-    <section className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold text-brand-900">Donate to {campaign.title}</h1>
-        <p className="text-brand-900">{campaign.summary ?? "Support this campaign with a simulated donation flow."}</p>
+    <section className="ui-page-stack">
+      <div className="ui-section-heading">
+        <h1 className="type-section text-primary">Donate to {campaign.title}</h1>
+        <p className="type-body text-secondary">{campaign.summary ?? "Support this campaign with a simulated donation flow."}</p>
       </div>
       <DonationForm action={action} />
     </section>

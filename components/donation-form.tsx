@@ -13,11 +13,7 @@ function SubmitButton() {
   const { pending } = useFormStatus();
 
   return (
-    <button
-      className="rounded-md bg-brand-700 px-4 py-2 font-medium text-white disabled:cursor-not-allowed disabled:opacity-70"
-      disabled={pending}
-      type="submit"
-    >
+    <button className="ui-button-primary" disabled={pending} type="submit">
       {pending ? "Processing..." : "Complete simulated payment"}
     </button>
   );
@@ -34,13 +30,13 @@ export function DonationForm({ action }: DonationFormProps) {
   const [useTaxDeduction, setUseTaxDeduction] = useState(false);
 
   return (
-    <form action={formAction} className="space-y-5 rounded-xl border border-brand-100 bg-white p-5 shadow-sm">
+    <form action={formAction} className="ui-form-panel space-y-6">
       <div className="grid gap-2">
-        <label className="font-medium text-brand-900" htmlFor="amount">
+        <label className="ui-form-label" htmlFor="amount">
           Amount (DKK)
         </label>
         <input
-          className="rounded-md border border-brand-100 px-3 py-2"
+          className="ui-form-input"
           id="amount"
           min="1"
           name="amount"
@@ -51,19 +47,19 @@ export function DonationForm({ action }: DonationFormProps) {
       </div>
 
       <div className="grid gap-2">
-        <label className="font-medium text-brand-900" htmlFor="donationType">
+        <label className="ui-form-label" htmlFor="donationType">
           Donation type
         </label>
-        <select className="rounded-md border border-brand-100 px-3 py-2" defaultValue="ONE_TIME" id="donationType" name="donationType">
+        <select className="ui-form-select" defaultValue="ONE_TIME" id="donationType" name="donationType">
           <option value="ONE_TIME">One-time</option>
           <option value="RECURRING">Recurring</option>
         </select>
       </div>
 
-      <fieldset className="space-y-2 rounded-md border border-brand-100 p-3">
-        <legend className="px-1 text-sm font-semibold text-brand-900">Supporter Access Code</legend>
+      <fieldset className="ui-form-fieldset">
+        <legend className="ui-form-legend">Supporter Access Code</legend>
 
-        <label className="flex items-center gap-2 text-sm text-brand-900" htmlFor="access-mode-new">
+        <label className="type-body-sm flex items-center gap-2 text-secondary" htmlFor="access-mode-new">
           <input
             checked={accessCodeMode === "CREATE_NEW"}
             id="access-mode-new"
@@ -75,7 +71,7 @@ export function DonationForm({ action }: DonationFormProps) {
           First time donating - generate my code
         </label>
 
-        <label className="flex items-center gap-2 text-sm text-brand-900" htmlFor="access-mode-existing">
+        <label className="type-body-sm flex items-center gap-2 text-secondary" htmlFor="access-mode-existing">
           <input
             checked={accessCodeMode === "USE_EXISTING"}
             id="access-mode-existing"
@@ -89,11 +85,11 @@ export function DonationForm({ action }: DonationFormProps) {
 
         {accessCodeMode === "USE_EXISTING" ? (
           <div className="grid gap-1">
-            <label className="text-sm font-medium text-brand-900" htmlFor="supporterAccessCode">
+            <label className="ui-form-label" htmlFor="supporterAccessCode">
               Existing Supporter Access Code
             </label>
             <input
-              className="rounded-md border border-brand-100 px-3 py-2"
+              className="ui-form-input"
               id="supporterAccessCode"
               name="supporterAccessCode"
               placeholder="PF-AB12-CD34"
@@ -104,23 +100,23 @@ export function DonationForm({ action }: DonationFormProps) {
       </fieldset>
 
       <div className="grid gap-2">
-        <label className="font-medium text-brand-900" htmlFor="donorName">
+        <label className="ui-form-label" htmlFor="donorName">
           Donor name (optional)
         </label>
-        <input className="rounded-md border border-brand-100 px-3 py-2" id="donorName" name="donorName" type="text" />
+        <input className="ui-form-input" id="donorName" name="donorName" type="text" />
       </div>
 
       <div className="grid gap-2">
-        <label className="font-medium text-brand-900" htmlFor="donorEmail">
+        <label className="ui-form-label" htmlFor="donorEmail">
           Donor email (optional)
         </label>
-        <input className="rounded-md border border-brand-100 px-3 py-2" id="donorEmail" name="donorEmail" type="email" />
+        <input className="ui-form-input" id="donorEmail" name="donorEmail" type="email" />
       </div>
 
-      <fieldset className="space-y-3 rounded-md border border-brand-100 p-3">
-        <legend className="px-1 text-sm font-semibold text-brand-900">Tax deduction (MVP)</legend>
+      <fieldset className="ui-form-fieldset">
+        <legend className="ui-form-legend">Tax deduction (MVP)</legend>
 
-        <label className="flex items-center gap-2 text-sm text-brand-900" htmlFor="taxEligible">
+        <label className="type-body-sm flex items-center gap-2 text-secondary" htmlFor="taxEligible">
           <input
             checked={useTaxDeduction}
             id="taxEligible"
@@ -133,28 +129,28 @@ export function DonationForm({ action }: DonationFormProps) {
 
         {useTaxDeduction ? (
           <div className="grid gap-3 md:grid-cols-[180px_minmax(0,1fr)]">
-            <label className="grid gap-1 text-sm font-medium text-brand-900">
+            <label className="ui-form-label grid gap-1">
               Tax ID type
-              <select className="rounded-md border border-brand-100 px-3 py-2" defaultValue="CPR" name="taxIdType">
+              <select className="ui-form-select" defaultValue="CPR" name="taxIdType">
                 <option value="CPR">CPR</option>
                 <option value="CVR">CVR</option>
               </select>
             </label>
 
-            <label className="grid gap-1 text-sm font-medium text-brand-900">
+            <label className="ui-form-label grid gap-1">
               Tax ID
-              <input className="rounded-md border border-brand-100 px-3 py-2" name="taxId" placeholder="Enter CPR or CVR" required />
+              <input className="ui-form-input" name="taxId" placeholder="Enter CPR or CVR" required />
             </label>
           </div>
         ) : null}
 
-        <p className="text-xs text-brand-700">Demo only. PulseFund stores the identifier for later admin aggregation and does not send it to SKAT.</p>
+        <p className="type-meta text-muted">Demo only. PulseFund stores the identifier for later admin aggregation and does not send it to SKAT.</p>
       </fieldset>
 
       <fieldset className="space-y-2">
-        <legend className="text-sm font-semibold text-brand-900">Blob color</legend>
+        <legend className="ui-form-legend">Blob color</legend>
         <input name="blobColor" type="hidden" value={selectedBlobColor} />
-        <div className="grid grid-cols-8 gap-2 rounded-md border border-brand-100 bg-slate-900 p-3">
+        <div className="ui-card-dark grid grid-cols-8 gap-2 p-3">
           {DONATION_BLOB_COLOR_OPTIONS.map((option) => {
             const selected = option.value === selectedBlobColor;
 
@@ -181,19 +177,17 @@ export function DonationForm({ action }: DonationFormProps) {
         </div>
       </fieldset>
 
-      <label className="flex items-center gap-2 text-brand-900" htmlFor="isAnonymous">
+      <label className="type-body-sm flex items-center gap-2 text-secondary" htmlFor="isAnonymous">
         <input id="isAnonymous" name="isAnonymous" type="checkbox" />
         Keep my donation anonymous in public views
       </label>
 
       <SubmitButton />
 
-      {state.status === "error" ? (
-        <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{state.message}</p>
-      ) : null}
+      {state.status === "error" ? <p className="ui-message-error">{state.message}</p> : null}
 
       {state.status === "success" ? (
-        <div className="space-y-1 rounded-md border border-brand-100 bg-brand-50 p-3 text-sm text-brand-900">
+        <div className="ui-message-success space-y-1">
           <p>{state.message}</p>
           <p>Receipt: {state.receiptNumber}</p>
           <p>Payment reference: {state.paymentReference}</p>

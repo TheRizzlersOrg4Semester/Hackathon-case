@@ -332,9 +332,9 @@ export function DonorBlobVisualization({ donations }: DonorBlobVisualizationProp
 
   if (blobs.length === 0) {
     return (
-      <section className="space-y-4">
-        <h2 className="text-2xl font-semibold text-slate-100">Donor blob constellation</h2>
-        <p className="rounded-2xl border border-white/15 bg-white/10 p-5 text-sm text-slate-200">
+      <section className="ui-section-stack">
+        <h2 className="type-section text-slate-100">Donor blob constellation</h2>
+        <p className="ui-card-soft ui-panel-padding type-body-sm text-secondary">
           No donations available for visualization yet.
         </p>
       </section>
@@ -342,10 +342,10 @@ export function DonorBlobVisualization({ donations }: DonorBlobVisualizationProp
   }
 
   return (
-    <section className="space-y-5">
+    <section className="ui-section-stack">
       <div className="space-y-2">
-        <h2 className="text-2xl font-semibold text-slate-100">Donor blob constellation</h2>
-        <p className="max-w-2xl text-sm text-slate-300">
+        <h2 className="type-section text-slate-100">Donor blob constellation</h2>
+        <p className="type-body-sm max-w-2xl text-muted">
           Grab a donation blob, throw it around the field, and watch the whole constellation boop back.
         </p>
       </div>
