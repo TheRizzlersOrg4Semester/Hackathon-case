@@ -76,4 +76,40 @@ describe("blob motion helper", () => {
 
     expect(distanceAfter).toBeGreaterThan(distanceBefore);
   });
+
+  it("applies slight same-campaign attraction within magnetic range", () => {
+    const base = createInitialBlobMotionStates(
+      [
+        { id: "mag-a", sizePx: 64, groupKey: "campaign-a" },
+        { id: "mag-b", sizePx: 64, groupKey: "campaign-a" }
+      ],
+      { width: 540, height: 360 }
+    );
+
+    base[0].x = 180;
+    base[0].y = 180;
+    base[1].x = 330;
+    base[1].y = 180;
+    base[0].vx = 0;
+    base[0].vy = 0;
+    base[1].vx = 0;
+    base[1].vy = 0;
+
+    const grouped = base.map((state) => ({ ...state }));
+    const ungrouped = base.map((state) => ({ ...state, groupKey: null }));
+
+    const steppedGrouped = stepBlobMotionStates(grouped, { width: 540, height: 360 }, 1 / 60);
+    const steppedUngrouped = stepBlobMotionStates(ungrouped, { width: 540, height: 360 }, 1 / 60);
+
+    const groupedDistance = Math.hypot(
+      steppedGrouped[1].x - steppedGrouped[0].x,
+      steppedGrouped[1].y - steppedGrouped[0].y
+    );
+    const ungroupedDistance = Math.hypot(
+      steppedUngrouped[1].x - steppedUngrouped[0].x,
+      steppedUngrouped[1].y - steppedUngrouped[0].y
+    );
+
+    expect(groupedDistance).toBeLessThan(ungroupedDistance);
+  });
 });

@@ -2,6 +2,10 @@ import Link from "next/link";
 import { calculateCampaignProgress } from "@/lib/domain/campaigns";
 import { getPublishedCampaigns } from "@/lib/persistence/campaign-queries";
 
+type CampaignListPageProps = {
+  searchParams?: Promise<{ q?: string }>;
+};
+
 function toAmount(value: unknown): number {
   return Number(value);
 }
@@ -14,14 +18,43 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-export default async function CampaignListPage() {
-  const campaigns = await getPublishedCampaigns();
+export default async function CampaignListPage({ searchParams }: CampaignListPageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const query = resolvedSearchParams?.q?.trim() ?? "";
+  const campaigns = await getPublishedCampaigns(query);
 
   return (
-    <section className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold text-brand-900">Campaigns</h1>
-        <p className="text-brand-900">Support active community campaigns and follow their fundraising progress.</p>
+    <section className="ui-page-stack">
+      <div className="ui-section-heading">
+        <h1 className="type-section">Campaigns</h1>
+        <p className="type-body">Support active community campaigns and follow their fundraising progress.</p>
+      </div>
+
+      <div className="ui-card-dark ui-panel-padding flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <form action="/campaigns" className="flex w-full max-w-2xl flex-col gap-3 sm:flex-row" method="get">
+          <input
+            aria-label="Search campaigns"
+            className="ui-form-input min-w-0 flex-1"
+            defaultValue={query}
+            name="q"
+            placeholder="Search campaigns by title, story, or category"
+            type="search"
+          />
+          <div className="flex gap-3">
+            <button className="ui-button-primary" type="submit">
+              Search
+            </button>
+            {query ? (
+              <Link className="ui-button-secondary" href="/campaigns">
+                Clear
+              </Link>
+            ) : null}
+          </div>
+        </form>
+
+        <p className="type-body-sm text-secondary">
+          {query ? `${campaigns.length} matching campaign${campaigns.length === 1 ? "" : "s"}` : "Browse all published campaigns"}
+        </p>
       </div>
 
       <div className="grid gap-4">
@@ -32,34 +65,36 @@ export default async function CampaignListPage() {
           );
 
           return (
-            <article className="rounded-xl border border-brand-100 bg-white p-5 shadow-sm" key={campaign.id}>
-              <div className="mb-3 flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <h2 className="text-xl font-semibold text-brand-900">{campaign.title}</h2>
-                  <p className="text-sm text-brand-700">{campaign.category?.name ?? "Uncategorized"}</p>
+            <article className="ui-campaign-card" key={campaign.id}>
+              <div className="ui-campaign-card__content">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-2">
+                    <h2 className="type-card">{campaign.title}</h2>
+                    <p className="type-body-sm">{campaign.category?.name ?? "Uncategorized"}</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <Link className="ui-button-secondary" href={`/campaigns/${campaign.id}`}>
+                      View details
+                    </Link>
+                    <Link className="ui-button-primary" href={`/donate/${campaign.id}`}>
+                      Donate
+                    </Link>
+                  </div>
                 </div>
-                <div className="flex gap-3">
-                  <Link className="text-sm font-medium text-brand-700 underline" href={`/campaigns/${campaign.id}`}>
-                    View details
-                  </Link>
-                  <Link className="text-sm font-medium text-brand-700 underline" href={`/donate/${campaign.id}`}>
-                    Donate
-                  </Link>
-                </div>
-              </div>
 
-              <p className="mb-4 text-brand-900">{campaign.summary ?? "No summary available yet."}</p>
+                <p className="ui-campaign-card__summary">{campaign.summary ?? "No summary available yet."}</p>
 
-              <div className="space-y-2">
-                <div className="flex flex-wrap gap-4 text-sm text-brand-900">
-                  <span>Raised: {formatCurrency(progress.raisedAmount)}</span>
-                  <span>Goal: {formatCurrency(progress.goalAmount)}</span>
-                  <span>Donations: {progress.donorCount}</span>
+                <div className="ui-progress-stack">
+                  <div className="flex flex-wrap gap-4 text-sm text-secondary">
+                    <span>Raised: {formatCurrency(progress.raisedAmount)}</span>
+                    <span>Goal: {formatCurrency(progress.goalAmount)}</span>
+                    <span>Donations: {progress.donorCount}</span>
+                  </div>
+                  <div aria-label={`Campaign progress ${progress.percent}%`} className="ui-progress-track">
+                    <div className="ui-progress-fill" style={{ width: `${progress.percent}%` }} />
+                  </div>
+                  <p className="type-body-sm">{progress.percent}% funded</p>
                 </div>
-                <div aria-label={`Campaign progress ${progress.percent}%`} className="h-2 rounded bg-brand-100">
-                  <div className="h-full rounded bg-brand-500" style={{ width: `${progress.percent}%` }} />
-                </div>
-                <p className="text-sm font-medium text-brand-700">{progress.percent}% funded</p>
               </div>
             </article>
           );
@@ -67,7 +102,9 @@ export default async function CampaignListPage() {
       </div>
 
       {campaigns.length === 0 ? (
-        <p className="rounded-md border border-brand-100 bg-white p-4 text-brand-900">No published campaigns yet.</p>
+        <p className="ui-card-dark ui-panel-padding type-body">
+          {query ? `No campaigns matched "${query}".` : "No published campaigns yet."}
+        </p>
       ) : null}
     </section>
   );

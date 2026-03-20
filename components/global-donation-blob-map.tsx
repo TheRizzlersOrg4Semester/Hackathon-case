@@ -8,10 +8,16 @@ import {
   stepBlobMotionStates,
   type BlobMotionState
 } from "@/lib/domain/blob-motion";
+import {
+  buildBlobSurfaceBackground,
+  buildBlobSurfaceShadow,
+  hasRenderableCampaignImageUrl
+} from "@/lib/domain/blob-colors";
 import { mapGlobalDonationBlobs, type LandingDonation } from "@/lib/domain/landing";
 
 type GlobalDonationBlobMapProps = {
   donations: LandingDonation[];
+  celebrationActive?: boolean;
 };
 
 type DragState = {
@@ -35,6 +41,7 @@ const MAX_THROW_SPEED = 1200;
 const SPLASH_RADIUS = 260;
 const SPLASH_FORCE = 380;
 const MOMENTUM_HOLD_SECONDS = 2.2;
+const MAX_GLOBAL_BLOBS = 42;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -59,8 +66,28 @@ function formatTimestamp(date: Date): string {
   }).format(date);
 }
 
-export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps) {
-  const blobs = useMemo(() => mapGlobalDonationBlobs(donations), [donations]);
+export function GlobalDonationBlobMap({ donations, celebrationActive = false }: GlobalDonationBlobMapProps) {
+  const allBlobs = useMemo(() => mapGlobalDonationBlobs(donations), [donations]);
+  const blobs = useMemo(() => allBlobs.slice(0, MAX_GLOBAL_BLOBS), [allBlobs]);
+  const campaignIdentityItems = useMemo(() => {
+    const seen = new Set<string>();
+    const items: Array<{ slug: string; title: string; imageUrl: string | null }> = [];
+
+    for (const donation of donations) {
+      if (seen.has(donation.campaignSlug)) {
+        continue;
+      }
+
+      seen.add(donation.campaignSlug);
+      items.push({
+        slug: donation.campaignSlug,
+        title: donation.campaignTitle,
+        imageUrl: donation.campaignImageUrl
+      });
+    }
+
+    return items.slice(0, 8);
+  }, [donations]);
   const [activeId, setActiveId] = useState<string | null>(blobs[0]?.id ?? null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -68,8 +95,11 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
   const containerRef = useRef<HTMLDivElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastTimestampRef = useRef<number | null>(null);
+  const boundsRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
+  const offsetRef = useRef<{ left: number; top: number }>({ left: 0, top: 0 });
   const dragStateRef = useRef<DragState | null>(null);
   const clickSuppressionRef = useRef<string | null>(null);
+  const [campaignImageErrors, setCampaignImageErrors] = useState<Record<string, true>>({});
 
   const currentId = selectedId ?? activeId;
   const focusedBlob = blobs.find((blob) => blob.id === currentId) ?? blobs[0];
@@ -90,8 +120,13 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
     if (!containerRef.current) {
       return;
     }
-
-    const rect = containerRef.current.getBoundingClientRect();
+    const rectLeft = offsetRef.current.left;
+    const rectTop = offsetRef.current.top;
+    const width = boundsRef.current.width;
+    const height = boundsRef.current.height;
+    if (width <= 0 || height <= 0) {
+      return;
+    }
 
     setMotionStates((previous) =>
       previous.map((state) => {
@@ -101,8 +136,8 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
 
         return {
           ...state,
-          x: clamp(clientX - rect.left, state.edgePadding, rect.width - state.edgePadding),
-          y: clamp(clientY - rect.top, state.edgePadding, rect.height - state.edgePadding),
+          x: clamp(clientX - rectLeft, state.edgePadding, width - state.edgePadding),
+          y: clamp(clientY - rectTop, state.edgePadding, height - state.edgePadding),
           vx: velocityX,
           vy: velocityY
         };
@@ -122,11 +157,14 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
       }
 
       const rect = containerRef.current.getBoundingClientRect();
+      boundsRef.current = { width: rect.width, height: rect.height };
+      offsetRef.current = { left: rect.left, top: rect.top };
       setMotionStates(
         createInitialBlobMotionStates(
           blobs.map((blob) => ({
             id: blob.id,
-            sizePx: blob.sizePx
+            sizePx: blob.sizePx,
+            groupKey: blob.magnetGroupKey
           })),
           {
             width: rect.width,
@@ -153,14 +191,19 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
         return;
       }
 
-      const rect = containerRef.current.getBoundingClientRect();
       const previousTimestamp = lastTimestampRef.current ?? timestamp;
       const dt = (timestamp - previousTimestamp) / 1000;
       lastTimestampRef.current = timestamp;
+      const width = boundsRef.current.width;
+      const height = boundsRef.current.height;
+      if (width <= 0 || height <= 0) {
+        animationFrameRef.current = window.requestAnimationFrame(step);
+        return;
+      }
 
       setMotionStates((previous) => {
         const draggedBlob = draggingId ? previous.find((state) => state.id === draggingId) : null;
-        const stepped = stepBlobMotionStates(previous, { width: rect.width, height: rect.height }, dt);
+        const stepped = stepBlobMotionStates(previous, { width, height }, dt);
 
         if (!draggedBlob) {
           return stepped;
@@ -308,30 +351,55 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
 
   if (blobs.length === 0) {
     return (
-      <section className="landing-panel space-y-3">
-        <h2 className="text-2xl font-semibold text-white">Global donation blob map</h2>
-        <p className="text-sm text-slate-200">No donations available yet. Seed data or new donations will populate this view.</p>
+      <section className="landing-panel ui-section-stack">
+        <h2 className="type-section text-white">Global donation blob map</h2>
+        <p className="type-body-sm text-muted">No donations available yet. Seed data or new donations will populate this view.</p>
       </section>
     );
   }
 
   return (
-    <section className="landing-panel space-y-5">
+    <section className={`landing-panel ui-section-stack ${celebrationActive ? "celebration-panel" : ""}`}>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-2">
-          <h2 className="text-2xl font-semibold text-white">Global donation blob map</h2>
-          <p className="max-w-2xl text-sm text-slate-200">
+          <h2 className="type-section text-white">Global donation blob map</h2>
+          <p className="type-body-sm max-w-2xl text-muted">
             Grab a blob, yeet it across the field, and watch the whole puddle turn into a tiny jelly riot.
           </p>
+          {campaignIdentityItems.length > 0 ? (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {campaignIdentityItems.map((campaign) => (
+                <span
+                  className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs text-slate-100"
+                  key={campaign.slug}
+                >
+                  {campaign.imageUrl ? (
+                    <span
+                      aria-hidden="true"
+                      className="h-4 w-4 rounded-full border border-white/35 bg-white/20"
+                      style={{ backgroundImage: `url(${campaign.imageUrl})`, backgroundSize: "cover", backgroundPosition: "center" }}
+                    />
+                  ) : (
+                    <span aria-hidden="true" className="h-4 w-4 rounded-full border border-white/35 bg-white/20" />
+                  )}
+                  {campaign.title}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
-        <Link className="rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur" href="/campaigns">
+        <Link className="ui-button-secondary" href="/campaigns">
           Explore all campaigns
         </Link>
       </div>
 
-      <div className="relative overflow-hidden rounded-3xl border border-white/20 bg-slate-950/45 p-4 md:p-6">
+      <div className={`relative overflow-hidden rounded-3xl border border-white/20 bg-slate-950/45 p-4 md:p-6 ${celebrationActive ? "celebration-map-shell" : ""}`}>
         <div className="landing-map-glow" />
+        <div className="landing-map-aurora" />
+        {celebrationActive ? <div aria-hidden="true" className="celebration-map-glimmer" /> : null}
         <div className="landing-map-grid" />
+        <div className="landing-map-noise" />
+        <div className="landing-map-vignette" />
         <div
           className="relative h-[420px] w-full md:h-[520px]"
           ref={containerRef}
@@ -341,6 +409,8 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
           {blobs.map((blob, index) => {
             const motionState = motionStates[index];
             const isDragging = draggingId === blob.id;
+            const canRenderCampaignImage =
+              hasRenderableCampaignImageUrl(blob.campaignImageUrl) && !campaignImageErrors[blob.id];
             const fallbackStyle = {
               left: `${blob.leftPercent}%`,
               top: `${blob.topPercent}%`,
@@ -367,7 +437,7 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
               <button
                 aria-label={`${blob.donorDisplayName}, ${formatCurrency(blob.amount)}, ${formatDonationType(blob.donationType)}, ${blob.campaignTitle}`}
                 aria-pressed={selectedId === blob.id}
-                className={`donor-blob ${blob.colorClass} ${selectedId === blob.id ? "is-selected" : ""} ${isDragging ? "is-dragging" : ""}`}
+                className={`donor-blob ${celebrationActive ? "is-celebrating" : ""} ${blob.colorClass} ${selectedId === blob.id ? "is-selected" : ""} ${isDragging ? "is-dragging" : ""}`}
                 key={blob.id}
                 onBlur={() => {
                   if (!selectedId) {
@@ -395,6 +465,8 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
                   }
 
                   const rect = containerRef.current.getBoundingClientRect();
+                  boundsRef.current = { width: rect.width, height: rect.height };
+                  offsetRef.current = { left: rect.left, top: rect.top };
                   const state = motionStates[index];
                   const centerX = rect.left + (state?.x ?? (blob.leftPercent / 100) * rect.width);
                   const centerY = rect.top + (state?.y ?? (blob.topPercent / 100) * rect.height);
@@ -425,10 +497,35 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
                   ...motionStyle,
                   borderRadius: render?.borderRadius,
                   width: `${blob.sizePx}px`,
-                  height: `${blob.sizePx}px`
+                  height: `${blob.sizePx}px`,
+                  background: buildBlobSurfaceBackground(blob.resolvedColorHex, celebrationActive),
+                  boxShadow: buildBlobSurfaceShadow(blob.resolvedColorHex, selectedId === blob.id, celebrationActive)
                 }}
                 type="button"
               >
+                {canRenderCampaignImage ? (
+                  <span aria-hidden="true" className="blob-campaign-badge">
+                    <span className="blob-campaign-badge__glow" />
+                    <span className="blob-campaign-badge__image">
+                      <img
+                        alt=""
+                        className="blob-campaign-badge__img"
+                        onError={() =>
+                          setCampaignImageErrors((previous) => ({
+                            ...previous,
+                            [blob.id]: true
+                          }))
+                        }
+                        src={blob.campaignImageUrl ?? ""}
+                      />
+                    </span>
+                  </span>
+                ) : (
+                  <span aria-hidden="true" className="blob-identity-fallback">
+                    <span className="blob-identity-fallback__campaign">{blob.campaignTitle}</span>
+                    <span className="blob-identity-fallback__donor">{blob.donorDisplayName}</span>
+                  </span>
+                )}
                 <span className="sr-only">{blob.donorDisplayName}</span>
               </button>
             );
@@ -437,11 +534,18 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
       </div>
 
       {focusedBlob ? (
-        <div className="grid gap-3 rounded-2xl border border-white/20 bg-white/10 p-4 text-sm text-white backdrop-blur md:grid-cols-5">
+        <div className="grid gap-3 rounded-2xl border border-white/20 bg-white/10 p-4 text-sm text-white backdrop-blur md:grid-cols-6">
           <p className="font-medium">{focusedBlob.donorDisplayName}</p>
           <p>{formatCurrency(focusedBlob.amount)}</p>
           <p>{formatDonationType(focusedBlob.donationType)}</p>
           <p>{focusedBlob.campaignTitle}</p>
+          <p className="flex items-center gap-2 text-slate-200">
+            <span
+              className="inline-flex h-3 w-3 rounded-full border border-white/40"
+              style={{ background: focusedBlob.resolvedColorHex }}
+            />
+            Blob tone
+          </p>
           <p>{formatTimestamp(focusedBlob.createdAt)}</p>
         </div>
       ) : null}
@@ -459,7 +563,7 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
             </tr>
           </thead>
           <tbody>
-            {blobs.slice(0, 16).map((blob) => (
+            {allBlobs.slice(0, 16).map((blob) => (
               <tr className="border-t border-white/10" key={`fallback-${blob.id}`}>
                 <td className="px-3 py-2">{blob.donorDisplayName}</td>
                 <td className="px-3 py-2">{formatCurrency(blob.amount)}</td>

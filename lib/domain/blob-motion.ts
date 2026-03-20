@@ -1,10 +1,12 @@
 export type BlobMotionSeed = {
   id: string;
   sizePx: number;
+  groupKey?: string | null;
 };
 
 export type BlobMotionState = {
   id: string;
+  groupKey: string | null;
   sizePx: number;
   x: number;
   y: number;
@@ -47,6 +49,8 @@ const EDGE_REPEL_FORCE = 220;
 const NEAR_BUMP_FACTOR = 1.34;
 const NEAR_BUMP_FORCE = 12;
 const MIN_BOUNCE_SPEED = 110;
+const CAMPAIGN_MAGNET_RANGE = 220;
+const CAMPAIGN_MAGNET_FORCE = 36;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -113,6 +117,7 @@ export function createInitialBlobMotionStates(seeds: BlobMotionSeed[], bounds: M
 
     return {
       id: seed.id,
+      groupKey: seed.groupKey ?? null,
       sizePx: seed.sizePx,
       x: point.x,
       y: point.y,
@@ -143,6 +148,7 @@ export function createInitialBlobMotionStates(seeds: BlobMotionSeed[], bounds: M
 }
 
 function applyHydrophobicRepulsion(states: BlobMotionState[], dt: number) {
+  const maxInteractionDistance = CAMPAIGN_MAGNET_RANGE;
   // Pairwise rejection impulse + overlap correction for droplet-like separation.
   for (let i = 0; i < states.length; i += 1) {
     for (let j = i + 1; j < states.length; j += 1) {
@@ -151,9 +157,15 @@ function applyHydrophobicRepulsion(states: BlobMotionState[], dt: number) {
 
       const dx = b.x - a.x;
       const dy = b.y - a.y;
+      // Cheap axis-aligned rejection to avoid expensive distance math for far pairs.
+      if (Math.abs(dx) > maxInteractionDistance || Math.abs(dy) > maxInteractionDistance) {
+        continue;
+      }
+
       const distance = Math.hypot(dx, dy) || 0.001;
       const minDistance = (a.sizePx + b.sizePx) * 0.52;
       const nearDistance = minDistance * NEAR_BUMP_FACTOR;
+      const hasSharedGroup = Boolean(a.groupKey && b.groupKey && a.groupKey === b.groupKey);
 
       if (distance < minDistance) {
         const overlap = minDistance - distance;
@@ -218,6 +230,21 @@ function applyHydrophobicRepulsion(states: BlobMotionState[], dt: number) {
         a.vy -= tangentY * swirl * 4;
         b.vx += tangentX * swirl * 4;
         b.vy += tangentY * swirl * 4;
+      }
+
+      if (hasSharedGroup && distance > nearDistance && distance < CAMPAIGN_MAGNET_RANGE) {
+        const nx = dx / distance;
+        const ny = dy / distance;
+        const closeness = 1 - distance / CAMPAIGN_MAGNET_RANGE;
+        const pull = closeness * closeness * CAMPAIGN_MAGNET_FORCE * dt;
+        const invMassA = 1 / Math.max(a.sizePx, 1);
+        const invMassB = 1 / Math.max(b.sizePx, 1);
+        const invMassSum = invMassA + invMassB || 1;
+
+        a.vx += nx * pull * (invMassA / invMassSum);
+        a.vy += ny * pull * (invMassA / invMassSum);
+        b.vx -= nx * pull * (invMassB / invMassSum);
+        b.vy -= ny * pull * (invMassB / invMassSum);
       }
     }
   }

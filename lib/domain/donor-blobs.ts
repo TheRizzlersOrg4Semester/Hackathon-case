@@ -1,5 +1,6 @@
 import type { DonationType } from "@prisma/client";
 import { getPublicDonorDisplayName } from "@/lib/domain/campaigns";
+import { resolveBlobColor } from "@/lib/domain/blob-colors";
 
 export type PublicDonationData = {
   id: string;
@@ -7,6 +8,11 @@ export type PublicDonationData = {
   donorName: string | null;
   isAnonymous: boolean;
   donationType: DonationType;
+  blobColor: string | null;
+  campaignImageUrl: string | null;
+  campaignTitle: string;
+  accessGroupKey?: string | null;
+  campaignScopeKey?: string | null;
   createdAt: Date;
 };
 
@@ -18,6 +24,10 @@ export type DonorBlob = {
   createdAt: Date;
   sizePx: number;
   colorClass: string;
+  resolvedColorHex: string;
+  campaignImageUrl: string | null;
+  campaignTitle: string;
+  magnetGroupKey: string | null;
 };
 
 const MIN_SIZE = 52;
@@ -57,6 +67,13 @@ export function mapDonationsToBlobs(donations: PublicDonationData[]): DonorBlob[
     donationType: donation.donationType,
     createdAt: donation.createdAt,
     sizePx: calculateBlobSize(donation.amount, minAmount, maxAmount),
-    colorClass: BLOB_COLORS[index % BLOB_COLORS.length]
+    colorClass: BLOB_COLORS[index % BLOB_COLORS.length],
+    resolvedColorHex: resolveBlobColor(donation.blobColor, index),
+    campaignImageUrl: donation.campaignImageUrl,
+    campaignTitle: donation.campaignTitle,
+    magnetGroupKey:
+      donation.accessGroupKey && donation.campaignScopeKey
+        ? `${donation.campaignScopeKey}:${donation.accessGroupKey}`
+        : null
   }));
 }

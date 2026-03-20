@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { calculateCampaignProgress, getPublicDonorDisplayName } from "../../lib/domain/campaigns";
+import {
+  buildCampaignMilestoneViews,
+  calculateCampaignProgress,
+  getCampaignMilestoneStatus,
+  getPublicDonorDisplayName
+} from "../../lib/domain/campaigns";
 
 describe("calculateCampaignProgress", () => {
   it("calculates raised amount, donor count, and percentage", () => {
@@ -52,5 +57,38 @@ describe("getPublicDonorDisplayName", () => {
     });
 
     expect(name).toBe("Guest donor");
+  });
+});
+
+describe("campaign milestones", () => {
+  it("marks milestones as reached when raised amount meets the target", () => {
+    expect(getCampaignMilestoneStatus(5000, 5000)).toBe("REACHED");
+    expect(getCampaignMilestoneStatus(6000, 5000)).toBe("REACHED");
+  });
+
+  it("marks milestones as upcoming when target has not been reached", () => {
+    expect(getCampaignMilestoneStatus(4999, 5000)).toBe("UPCOMING");
+  });
+
+  it("sorts milestones by display order and computes statuses", () => {
+    const milestones = buildCampaignMilestoneViews(7500, [
+      {
+        id: "m-2",
+        title: "Second milestone",
+        description: null,
+        targetAmount: 10000,
+        displayOrder: 2
+      },
+      {
+        id: "m-1",
+        title: "First milestone",
+        description: null,
+        targetAmount: 5000,
+        displayOrder: 1
+      }
+    ]);
+
+    expect(milestones.map((milestone) => milestone.id)).toEqual(["m-1", "m-2"]);
+    expect(milestones.map((milestone) => milestone.status)).toEqual(["REACHED", "UPCOMING"]);
   });
 });

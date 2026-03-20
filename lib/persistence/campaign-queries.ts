@@ -1,15 +1,69 @@
-import { CampaignStatus } from "@prisma/client";
+import { CampaignStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/persistence/prisma";
 
-export async function getPublishedCampaigns() {
+export function buildPublishedCampaignSearchWhere(query?: string): Prisma.CampaignWhereInput {
+  const normalized = query?.trim();
+
+  if (!normalized) {
+    return {
+      status: CampaignStatus.PUBLISHED
+    };
+  }
+
+  return {
+    status: CampaignStatus.PUBLISHED,
+    OR: [
+      {
+        title: {
+          contains: normalized,
+          mode: "insensitive"
+        }
+      },
+      {
+        summary: {
+          contains: normalized,
+          mode: "insensitive"
+        }
+      },
+      {
+        description: {
+          contains: normalized,
+          mode: "insensitive"
+        }
+      },
+      {
+        category: {
+          is: {
+            name: {
+              contains: normalized,
+              mode: "insensitive"
+            }
+          }
+        }
+      }
+    ]
+  };
+}
+
+export async function getPublishedCampaigns(query?: string) {
   return prisma.campaign.findMany({
-    where: { status: CampaignStatus.PUBLISHED },
+    where: buildPublishedCampaignSearchWhere(query),
     orderBy: { publishedAt: "desc" },
     include: {
       category: {
         select: {
           name: true,
           slug: true
+        }
+      },
+      milestones: {
+        orderBy: [{ displayOrder: "asc" }, { targetAmount: "asc" }],
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          targetAmount: true,
+          displayOrder: true
         }
       },
       donations: {
@@ -33,6 +87,16 @@ export async function getPublishedCampaignById(id: string) {
           name: true
         }
       },
+      milestones: {
+        orderBy: [{ displayOrder: "asc" }, { targetAmount: "asc" }],
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          targetAmount: true,
+          displayOrder: true
+        }
+      },
       donations: {
         orderBy: { createdAt: "desc" },
         take: 25,
@@ -41,8 +105,10 @@ export async function getPublishedCampaignById(id: string) {
           amount: true,
           donorName: true,
           donorEmail: true,
+          donationAccessId: true,
           isAnonymous: true,
           donationType: true,
+          blobColor: true,
           createdAt: true
         }
       }
@@ -73,6 +139,7 @@ export async function getLandingCampaignData() {
       slug: true,
       title: true,
       summary: true,
+      brandImageUrl: true,
       goalAmount: true,
       category: {
         select: {
@@ -85,8 +152,10 @@ export async function getLandingCampaignData() {
           id: true,
           amount: true,
           donorName: true,
+          donationAccessId: true,
           isAnonymous: true,
           donationType: true,
+          blobColor: true,
           createdAt: true
         }
       }

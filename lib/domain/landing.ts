@@ -1,4 +1,5 @@
 import { getPublicDonorDisplayName } from "@/lib/domain/campaigns";
+import { resolveBlobColor } from "@/lib/domain/blob-colors";
 
 export type LandingDonation = {
   id: string;
@@ -6,9 +7,12 @@ export type LandingDonation = {
   donorName: string | null;
   isAnonymous: boolean;
   donationType: "ONE_TIME" | "RECURRING";
+  blobColor: string | null;
+  donationAccessId: string | null;
   createdAt: Date;
   campaignTitle: string;
   campaignSlug: string;
+  campaignImageUrl: string | null;
 };
 
 export type LandingCampaign = {
@@ -37,10 +41,13 @@ export type GlobalDonationBlob = {
   createdAt: Date;
   campaignTitle: string;
   campaignSlug: string;
+  campaignImageUrl: string | null;
   sizePx: number;
   leftPercent: number;
   topPercent: number;
   colorClass: string;
+  resolvedColorHex: string;
+  magnetGroupKey: string | null;
 };
 
 const MIN_BLOB_SIZE = 36;
@@ -100,10 +107,13 @@ export function mapGlobalDonationBlobs(donations: LandingDonation[]): GlobalDona
     createdAt: donation.createdAt,
     campaignTitle: donation.campaignTitle,
     campaignSlug: donation.campaignSlug,
+    campaignImageUrl: donation.campaignImageUrl,
     sizePx: calculateBlobSize(donation.amount, minAmount, maxAmount),
     leftPercent: 6 + ((index * 19) % 84),
     topPercent: 8 + ((index * 31) % 74),
-    colorClass: BLOB_COLORS[index % BLOB_COLORS.length]
+    colorClass: BLOB_COLORS[index % BLOB_COLORS.length],
+    resolvedColorHex: resolveBlobColor(donation.blobColor, index),
+    magnetGroupKey: donation.donationAccessId ? `${donation.campaignSlug}:${donation.donationAccessId}` : null
   }));
 }
 
