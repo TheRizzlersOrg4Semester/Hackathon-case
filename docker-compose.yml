@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: pulsefund-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pulsefund
+      POSTGRES_USER: pulsefund
+      POSTGRES_PASSWORD: pulsefund
+    ports:
+      - "54329:5432"
+    volumes:
+      - pulsefund-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  pulsefund-postgres-data:

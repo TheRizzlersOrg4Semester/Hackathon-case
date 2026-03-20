@@ -25,15 +25,44 @@ This repository includes the current MVP flow:
 2. Create a root `.env` file. The app reads `.env` directly via Next.js and Prisma.
 3. Add the local database connection:
    `DATABASE_URL="postgresql://pulsefund:pulsefund@127.0.0.1:54329/pulsefund?schema=public"`
-4. Optional Resend setup for the thank-you email demo:
+4. Start the local PostgreSQL database:
+   `docker compose up -d db`
+5. Optional Resend setup for the thank-you email demo:
    `RESEND_API_KEY="re_xxxxx"`
    `RESEND_FROM_EMAIL="PulseFund <onboarding@resend.dev>"`
    `PULSEFUND_BASE_URL="http://localhost:3000"`
-5. For Resend test mode without a custom domain, keep `RESEND_FROM_EMAIL` as `onboarding@resend.dev` and use the email address tied to your own Resend account as the donor email in the form.
-6. `npm run prisma:generate`
-7. `npm run prisma:migrate:dev`
-8. `npm run db:seed`
-9. `npm run dev`
+6. For Resend test mode without a custom domain, keep `RESEND_FROM_EMAIL` as `onboarding@resend.dev` and use the email address tied to your own Resend account as the donor email in the form.
+7. `npm run prisma:generate`
+8. `npm run prisma:migrate:dev`
+9. `npm run db:seed`
+10. `npm run dev`
+
+## Local Pipeline
+
+This is the practical local pipeline for the project from configuration to a running app:
+
+```text
+.env -> docker compose up -d db -> prisma generate -> prisma migrate -> db seed -> next dev
+```
+
+You can also think of it as this flow:
+
+1. Environment variables define the database and app configuration.
+2. PostgreSQL starts locally in Docker on `127.0.0.1:54329`.
+3. Prisma generates the client from [`prisma/schema.prisma`](/c:/Users/mathi/Desktop/vibe-hack case/Hackathon-case/prisma/schema.prisma).
+4. Prisma migrations create and update the database tables.
+5. Seed data populates the demo content.
+6. Next.js starts the web app for local development.
+
+Common local command sequence:
+
+```powershell
+docker compose up -d db
+npm.cmd run prisma:generate
+npx.cmd prisma migrate deploy
+npm.cmd run db:seed
+npm.cmd run dev
+```
 
 ## Test Commands
 
