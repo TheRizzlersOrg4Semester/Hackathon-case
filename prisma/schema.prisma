@@ -150,6 +150,12 @@ model Donation {
   taxEligible    Boolean      @default(false)
   subscribedToUpdates Boolean @default(false)
   blobColor      String?
+  paymentCardholderName String?
+  paymentCardBrand String?
+  paymentCardLast4 String?
+  paymentExpiryMonth Int?
+  paymentExpiryYear Int?
+  paymentBillingPostalCode String?
   isAnonymous    Boolean      @default(false)
   donationType   DonationType @default(ONE_TIME)
   donorMessage   String?

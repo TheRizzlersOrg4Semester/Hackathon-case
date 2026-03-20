@@ -32,7 +32,24 @@ const donationInputSchema = z.object({
   subscribedToUpdates: z.coerce.boolean().default(false),
   accessCodeMode: z.enum(["CREATE_NEW", "USE_EXISTING"]).default("CREATE_NEW"),
   supporterAccessCode: z.string().trim().optional(),
-  blobColor: z.string().trim().optional()
+  blobColor: z.string().trim().optional(),
+  paymentCardholderName: z.string().trim().min(2, "Cardholder name is required"),
+  paymentCardNumber: z
+    .string()
+    .trim()
+    .min(1, "Card number is required")
+    .refine((value) => isValidSimulatedCardNumber(value), {
+      message: "Card number must contain 12 to 19 valid digits."
+    }),
+  paymentExpiryMonth: z.coerce.number().int().min(1).max(12),
+  paymentExpiryYear: z.coerce.number().int().min(2000).max(2100),
+  paymentCvc: z
+    .string()
+    .trim()
+    .refine((value) => /^\d{3,4}$/.test(value), {
+      message: "CVC must be 3 or 4 digits."
+    }),
+  paymentBillingPostalCode: z.string().trim().optional()
 }).superRefine((value, ctx) => {
   if (!value.taxEligible) {
     return;
@@ -74,6 +91,15 @@ type CreatedDonation = {
   amount: Prisma.Decimal;
 };
 
+type SimulatedPaymentSnapshot = {
+  cardholderName: string;
+  cardBrand: string;
+  cardLast4: string;
+  expiryMonth: number;
+  expiryYear: number;
+  billingPostalCode: string | null;
+};
+
 export type DonationFlowPersistence = {
   getPublishedCampaignById: (campaignId: string) => Promise<PublishedCampaignRef | null>;
   findDonationAccessByCode: (accessCode: string) => Promise<DonationAccessRef | null>;
@@ -91,6 +117,12 @@ export type DonationFlowPersistence = {
     taxId: string | null;
     subscribedToUpdates: boolean;
     blobColor: string | null;
+    paymentCardholderName: string;
+    paymentCardBrand: string;
+    paymentCardLast4: string;
+    paymentExpiryMonth: number;
+    paymentExpiryYear: number;
+    paymentBillingPostalCode: string | null;
   }) => Promise<CreatedDonation>;
   createDonationReceipt: (data: {
     donationId: string;
@@ -135,6 +167,93 @@ function normalizeTaxId(value?: string): string | null {
   }
 
   return normalized.replace(/\s+/g, "").toUpperCase();
+}
+
+function normalizeCardDigits(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+function passesLuhnCheck(cardDigits: string): boolean {
+  let sum = 0;
+  let shouldDouble = false;
+
+  for (let index = cardDigits.length - 1; index >= 0; index -= 1) {
+    let digit = Number(cardDigits[index]);
+
+    if (Number.isNaN(digit)) {
+      return false;
+    }
+
+    if (shouldDouble) {
+      digit *= 2;
+      if (digit > 9) {
+        digit -= 9;
+      }
+    }
+
+    sum += digit;
+    shouldDouble = !shouldDouble;
+  }
+
+  return sum % 10 === 0;
+}
+
+function isValidSimulatedCardNumber(value: string): boolean {
+  const digits = normalizeCardDigits(value);
+  return digits.length >= 12 && digits.length <= 19 && passesLuhnCheck(digits);
+}
+
+function resolveSimulatedCardBrand(cardDigits: string): string {
+  if (/^4\d{12,18}$/.test(cardDigits)) {
+    return "Visa";
+  }
+
+  if (/^(5[1-5]\d{14}|2(2[2-9]|[3-6]\d|7[01])\d{12}|2720\d{12})$/.test(cardDigits)) {
+    return "Mastercard";
+  }
+
+  if (/^3[47]\d{13}$/.test(cardDigits)) {
+    return "American Express";
+  }
+
+  if (/^(6011\d{12}|65\d{14}|64[4-9]\d{13})$/.test(cardDigits)) {
+    return "Discover";
+  }
+
+  return "Card";
+}
+
+function isExpiryInPast(expiryMonth: number, expiryYear: number, now: Date): boolean {
+  const currentYear = now.getUTCFullYear();
+  const currentMonth = now.getUTCMonth() + 1;
+
+  return expiryYear < currentYear || (expiryYear === currentYear && expiryMonth < currentMonth);
+}
+
+function normalizeSimulatedPayment(validated: ValidDonationInput, now: Date): SimulatedPaymentSnapshot {
+  const cardholderName = normalizeOptionalString(validated.paymentCardholderName);
+  if (!cardholderName) {
+    throw new Error("Cardholder name is required.");
+  }
+
+  if (isExpiryInPast(validated.paymentExpiryMonth, validated.paymentExpiryYear, now)) {
+    throw new Error("Card expiry date is in the past.");
+  }
+
+  const cardDigits = normalizeCardDigits(validated.paymentCardNumber);
+
+  if (!isValidSimulatedCardNumber(cardDigits)) {
+    throw new Error("Card number must contain 12 to 19 valid digits.");
+  }
+
+  return {
+    cardholderName,
+    cardBrand: resolveSimulatedCardBrand(cardDigits),
+    cardLast4: cardDigits.slice(-4),
+    expiryMonth: validated.paymentExpiryMonth,
+    expiryYear: validated.paymentExpiryYear,
+    billingPostalCode: normalizeOptionalString(validated.paymentBillingPostalCode)
+  };
 }
 
 export function classifyThankYouTier(amount: number): ThankYouTier {
@@ -256,7 +375,13 @@ function getDefaultDonationPersistence(tx: Prisma.TransactionClient): DonationFl
           taxIdType: data.taxIdType,
           taxId: data.taxId,
           subscribedToUpdates: data.subscribedToUpdates,
-          blobColor: data.blobColor
+          blobColor: data.blobColor,
+          paymentCardholderName: data.paymentCardholderName,
+          paymentCardBrand: data.paymentCardBrand,
+          paymentCardLast4: data.paymentCardLast4,
+          paymentExpiryMonth: data.paymentExpiryMonth,
+          paymentExpiryYear: data.paymentExpiryYear,
+          paymentBillingPostalCode: data.paymentBillingPostalCode
         },
         select: {
           id: true,
@@ -289,6 +414,8 @@ export type CreateDonationResult = {
   donationId: string;
   receiptNumber: string;
   paymentReference: string;
+  paymentCardBrand: string;
+  paymentCardLast4: string;
   thankYouTier: ThankYouTier;
   supporterAccessCode: string;
   supporterAccessCodeCreated: boolean;
@@ -299,6 +426,8 @@ type DonationFlowInternalResult = {
   donationId: string;
   receiptNumber: string;
   paymentReference: string;
+  paymentCardBrand: string;
+  paymentCardLast4: string;
   thankYouTier: ThankYouTier;
   supporterAccessCode: string;
   supporterAccessCodeCreated: boolean;
@@ -358,6 +487,7 @@ export async function createDonationWithSimulatedPayment(
     const taxEligible = validated.taxEligible;
     const taxIdType = taxEligible ? (validated.taxIdType ?? null) : null;
     const taxId = taxEligible ? normalizeTaxId(validated.taxId) : null;
+    const paymentSnapshot = normalizeSimulatedPayment(validated, now);
 
     const donation = await persistence.createDonation({
       campaignId: validated.campaignId,
@@ -371,7 +501,13 @@ export async function createDonationWithSimulatedPayment(
       taxIdType,
       taxId,
       subscribedToUpdates: validated.subscribedToUpdates,
-      blobColor: normalizeBlobColor(validated.blobColor)
+      blobColor: normalizeBlobColor(validated.blobColor),
+      paymentCardholderName: paymentSnapshot.cardholderName,
+      paymentCardBrand: paymentSnapshot.cardBrand,
+      paymentCardLast4: paymentSnapshot.cardLast4,
+      paymentExpiryMonth: paymentSnapshot.expiryMonth,
+      paymentExpiryYear: paymentSnapshot.expiryYear,
+      paymentBillingPostalCode: paymentSnapshot.billingPostalCode
     });
 
     const receiptNumber = buildReceiptNumber(now, randomDigits);
@@ -394,6 +530,8 @@ export async function createDonationWithSimulatedPayment(
       donationId: donation.id,
       receiptNumber,
       paymentReference,
+      paymentCardBrand: paymentSnapshot.cardBrand,
+      paymentCardLast4: paymentSnapshot.cardLast4,
       thankYouTier: tier,
       supporterAccessCode: accessResolution.access.accessCode,
       supporterAccessCodeCreated: accessResolution.createdNow,
@@ -458,6 +596,8 @@ export async function createDonationWithSimulatedPayment(
     donationId: completedDonation.donationId,
     receiptNumber: completedDonation.receiptNumber,
     paymentReference: completedDonation.paymentReference,
+    paymentCardBrand: completedDonation.paymentCardBrand,
+    paymentCardLast4: completedDonation.paymentCardLast4,
     thankYouTier: completedDonation.thankYouTier,
     supporterAccessCode: completedDonation.supporterAccessCode,
     supporterAccessCodeCreated: completedDonation.supporterAccessCodeCreated,

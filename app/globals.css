@@ -584,6 +584,10 @@ a {
   .donor-blob {
     transition: none;
   }
+
+  .landing-how-it-works-track {
+    animation: none;
+  }
 }
 
 .landing-hero {
@@ -613,6 +617,80 @@ a {
   background: linear-gradient(140deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.74));
   box-shadow: 0 18px 42px rgba(15, 23, 42, 0.35);
   backdrop-filter: blur(14px);
+}
+
+.landing-how-it-works-scroller {
+  position: relative;
+}
+
+.landing-how-it-works-scroller::before,
+.landing-how-it-works-scroller::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3.5rem;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.landing-how-it-works-scroller::before {
+  left: 0;
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.94), rgba(15, 23, 42, 0));
+}
+
+.landing-how-it-works-scroller::after {
+  right: 0;
+  background: linear-gradient(270deg, rgba(30, 41, 59, 0.94), rgba(30, 41, 59, 0));
+}
+
+.landing-how-it-works-scrollport {
+  overflow-x: auto;
+  padding-bottom: 0.75rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.75) rgba(15, 23, 42, 0.35);
+}
+
+.landing-how-it-works-scrollport::-webkit-scrollbar {
+  height: 0.7rem;
+}
+
+.landing-how-it-works-scrollport::-webkit-scrollbar-track {
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.landing-how-it-works-scrollport::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  border: 2px solid rgba(15, 23, 42, 0.35);
+  background: linear-gradient(90deg, rgba(45, 212, 191, 0.88), rgba(125, 211, 252, 0.88));
+}
+
+.landing-how-it-works-track {
+  display: flex;
+  gap: 1rem;
+  width: max-content;
+  animation: landing-how-it-works-loop 24s linear infinite;
+}
+
+.landing-how-it-works-scrollport:hover .landing-how-it-works-track,
+.landing-how-it-works-scrollport:focus-within .landing-how-it-works-track {
+  animation-play-state: paused;
+}
+
+.landing-how-it-works-card {
+  width: min(20rem, calc(100vw - 5rem));
+  flex: 0 0 auto;
+}
+
+@keyframes landing-how-it-works-loop {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(calc(-50% - 0.5rem));
+  }
 }
 
 .landing-map-glow {

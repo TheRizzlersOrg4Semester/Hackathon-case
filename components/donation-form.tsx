@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { buildBlobSwatchBackground, DONATION_BLOB_COLOR_OPTIONS } from "@/lib/domain/blob-colors";
 import type { DonationFormState } from "@/app/donate/[campaignId]/actions";
@@ -28,9 +28,36 @@ export function DonationForm({ action }: DonationFormProps) {
   const [accessCodeMode, setAccessCodeMode] = useState<"CREATE_NEW" | "USE_EXISTING">("CREATE_NEW");
   const [selectedBlobColor, setSelectedBlobColor] = useState<string>(DONATION_BLOB_COLOR_OPTIONS[0].value);
   const [useTaxDeduction, setUseTaxDeduction] = useState(false);
+  const [paymentStepOpen, setPaymentStepOpen] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const paymentCardholderNameRef = useRef<HTMLInputElement>(null);
+
+  function handleContinueToPayment() {
+    const form = formRef.current;
+
+    if (!form?.reportValidity()) {
+      return;
+    }
+
+    setPaymentStepOpen(true);
+
+    window.requestAnimationFrame(() => {
+      paymentCardholderNameRef.current?.focus();
+    });
+  }
 
   return (
-    <form action={formAction} className="ui-form-panel space-y-6">
+    <form
+      action={formAction}
+      className="ui-form-panel space-y-6"
+      onSubmit={(event) => {
+        if (!paymentStepOpen) {
+          event.preventDefault();
+          handleContinueToPayment();
+        }
+      }}
+      ref={formRef}
+    >
       <div className="grid gap-2">
         <label className="ui-form-label" htmlFor="amount">
           Amount (DKK)
@@ -190,7 +217,122 @@ export function DonationForm({ action }: DonationFormProps) {
         <p className="type-meta text-muted">Optional simulated signup only. No real email subscription is triggered in this MVP.</p>
       </div>
 
-      <SubmitButton />
+      {!paymentStepOpen ? (
+        <button className="ui-button-primary w-full" onClick={handleContinueToPayment} type="button">
+          Continue to payment
+        </button>
+      ) : (
+        <fieldset className="ui-form-fieldset space-y-4 bg-white/5">
+          <legend className="ui-form-legend">Payment simulation</legend>
+          <p className="type-body-sm">
+            Enter a valid-looking test card to finish the simulation. Only card brand, last four digits, expiry, and
+            optional billing postal code are stored with the donation.
+          </p>
+
+          <div className="grid gap-2">
+            <label className="ui-form-label" htmlFor="paymentCardholderName">
+              Cardholder name
+            </label>
+            <input
+              autoComplete="cc-name"
+              className="ui-form-input"
+              id="paymentCardholderName"
+              name="paymentCardholderName"
+              ref={paymentCardholderNameRef}
+              required={paymentStepOpen}
+              type="text"
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <label className="ui-form-label" htmlFor="paymentCardNumber">
+              Card number
+            </label>
+            <input
+              autoComplete="cc-number"
+              className="ui-form-input"
+              id="paymentCardNumber"
+              inputMode="numeric"
+              name="paymentCardNumber"
+              pattern="[0-9 ]{12,23}"
+              placeholder="4242 4242 4242 4242"
+              required={paymentStepOpen}
+              type="text"
+            />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-2">
+              <label className="ui-form-label" htmlFor="paymentExpiryMonth">
+                Expiry month
+              </label>
+              <input
+                autoComplete="cc-exp-month"
+                className="ui-form-input"
+                id="paymentExpiryMonth"
+                inputMode="numeric"
+                max="12"
+                min="1"
+                name="paymentExpiryMonth"
+                placeholder="08"
+                required={paymentStepOpen}
+                type="number"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="ui-form-label" htmlFor="paymentExpiryYear">
+                Expiry year
+              </label>
+              <input
+                autoComplete="cc-exp-year"
+                className="ui-form-input"
+                id="paymentExpiryYear"
+                inputMode="numeric"
+                max="2100"
+                min="2000"
+                name="paymentExpiryYear"
+                placeholder="2028"
+                required={paymentStepOpen}
+                type="number"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="ui-form-label" htmlFor="paymentCvc">
+                CVC
+              </label>
+              <input
+                autoComplete="cc-csc"
+                className="ui-form-input"
+                id="paymentCvc"
+                inputMode="numeric"
+                maxLength={4}
+                name="paymentCvc"
+                pattern="[0-9]{3,4}"
+                placeholder="123"
+                required={paymentStepOpen}
+                type="password"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <label className="ui-form-label" htmlFor="paymentBillingPostalCode">
+              Billing ZIP / postal code (optional)
+            </label>
+            <input
+              autoComplete="postal-code"
+              className="ui-form-input"
+              id="paymentBillingPostalCode"
+              name="paymentBillingPostalCode"
+              type="text"
+            />
+          </div>
+
+          <SubmitButton />
+        </fieldset>
+      )}
 
       {state.status === "error" ? <p className="ui-message-error">{state.message}</p> : null}
 
@@ -199,6 +341,9 @@ export function DonationForm({ action }: DonationFormProps) {
           <p>{state.message}</p>
           <p>Receipt: {state.receiptNumber}</p>
           <p>Payment reference: {state.paymentReference}</p>
+          <p>
+            Payment method: {state.paymentCardBrand} ending in {state.paymentCardLast4}
+          </p>
           <p>Thank-you tier: {state.thankYouTier}</p>
           <p>Thank-you email: {state.thankYouEmailMessage}</p>
           <p className="font-semibold">Supporter Access Code: {state.supporterAccessCode}</p>

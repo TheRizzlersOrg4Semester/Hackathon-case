@@ -3,6 +3,27 @@ import { GlobalDonationBlobMap } from "@/components/global-donation-blob-map";
 import { buildLandingStats, pickFeaturedCampaigns, type LandingCampaign, type LandingDonation } from "@/lib/domain/landing";
 import { getLandingCampaignData } from "@/lib/persistence/campaign-queries";
 
+const howPulseFundWorksItems = [
+  {
+    title: "Discover live campaigns",
+    text: "Browse verified causes and instantly understand traction through transparent progress and activity."
+  },
+  {
+    title: "Donate in seconds",
+    text: "Complete a simple donation flow with one-time or recurring support and optional anonymous visibility."
+  },
+  {
+    title: "See your impact",
+    text: "Every donation appears in living visualizations with accessible fallback details for complete clarity."
+  },
+  {
+    title: "Terms of Service",
+    text: "Review the site rules, donation conditions, and platform responsibilities before you support a campaign.",
+    href: "/terms-of-service",
+    linkLabel: "Open terms"
+  }
+] as const;
+
 function toAmount(value: unknown): number {
   return Number(value);
 }
@@ -157,26 +178,40 @@ export default async function HomePage() {
 
       <section className="landing-panel p-6 md:p-8">
         <h2 className="type-section">How PulseFund works</h2>
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          {[
-            {
-              title: "Discover live campaigns",
-              text: "Browse verified causes and instantly understand traction through transparent progress and activity."
-            },
-            {
-              title: "Donate in seconds",
-              text: "Complete a simple donation flow with one-time or recurring support and optional anonymous visibility."
-            },
-            {
-              title: "See your impact",
-              text: "Every donation appears in living visualizations with accessible fallback details for complete clarity."
-            }
-          ].map((item) => (
-            <article className="ui-card-soft p-4" key={item.title}>
-              <h3 className="type-card">{item.title}</h3>
-              <p className="mt-2 type-body-sm">{item.text}</p>
-            </article>
-          ))}
+        <p className="mt-2 type-body-sm">Scroll the lane or let it glide to explore how the platform works.</p>
+        <div className="landing-how-it-works-scroller mt-6">
+          <div className="landing-how-it-works-scrollport" role="region" aria-label="How PulseFund works cards">
+            <div className="landing-how-it-works-track">
+              {[...howPulseFundWorksItems, ...howPulseFundWorksItems].map((item, index) => {
+                const isClone = index >= howPulseFundWorksItems.length;
+
+                return (
+                  <article
+                    aria-hidden={isClone}
+                    className="landing-how-it-works-card ui-card-soft p-5"
+                    key={`${item.title}-${isClone ? "clone" : "primary"}`}
+                  >
+                    <div className="space-y-3">
+                      <h3 className="type-card">{item.title}</h3>
+                      <p className="type-body-sm">{item.text}</p>
+                    </div>
+
+                    {"href" in item ? (
+                      <div className="mt-5">
+                        <Link
+                          className="inline-flex items-center gap-2 text-sm font-semibold text-teal-200 underline decoration-teal-200/60 underline-offset-4"
+                          href={item.href}
+                          tabIndex={isClone ? -1 : undefined}
+                        >
+                          {item.linkLabel}
+                        </Link>
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </section>
     </div>
