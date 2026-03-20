@@ -30,7 +30,12 @@ describe("validateDonationInput", () => {
       campaignId: "campaign-1",
       amount: 250,
       donorName: " ",
-      donorEmail: ""
+      donorEmail: "",
+      paymentCardholderName: "Jamie Donor",
+      paymentCardNumber: "4242 4242 4242 4242",
+      paymentExpiryMonth: 8,
+      paymentExpiryYear: 2099,
+      paymentCvc: "123"
     });
 
     expect(result.amount).toBe(250);
@@ -47,7 +52,12 @@ describe("validateDonationInput", () => {
       validateDonationInput({
         campaignId: "campaign-1",
         amount: 250,
-        donorEmail: "not-an-email"
+        donorEmail: "not-an-email",
+        paymentCardholderName: "Jamie Donor",
+        paymentCardNumber: "4242 4242 4242 4242",
+        paymentExpiryMonth: 8,
+        paymentExpiryYear: 2099,
+        paymentCvc: "123"
       })
     ).toThrow("Invalid donor email");
   });
@@ -57,6 +67,11 @@ describe("validateDonationInput", () => {
       validateDonationInput({
         campaignId: "campaign-1",
         amount: 250,
+        paymentCardholderName: "Jamie Donor",
+        paymentCardNumber: "4242 4242 4242 4242",
+        paymentExpiryMonth: 8,
+        paymentExpiryYear: 2099,
+        paymentCvc: "123",
         taxEligible: true
       })
     ).toThrow("Choose CPR or CVR for tax deduction handling.");
@@ -68,7 +83,12 @@ describe("validateDonationInput", () => {
       amount: 250,
       taxEligible: true,
       taxIdType: "CPR",
-      taxId: " 1234567890 "
+      taxId: " 1234567890 ",
+      paymentCardholderName: "Jamie Donor",
+      paymentCardNumber: "4242 4242 4242 4242",
+      paymentExpiryMonth: 8,
+      paymentExpiryYear: 2099,
+      paymentCvc: "123"
     });
 
     expect(result.taxEligible).toBe(true);
@@ -80,9 +100,28 @@ describe("validateDonationInput", () => {
     const result = validateDonationInput({
       campaignId: "campaign-1",
       amount: 250,
-      subscribedToUpdates: true
+      subscribedToUpdates: true,
+      paymentCardholderName: "Jamie Donor",
+      paymentCardNumber: "4242 4242 4242 4242",
+      paymentExpiryMonth: 8,
+      paymentExpiryYear: 2099,
+      paymentCvc: "123"
     });
 
     expect(result.subscribedToUpdates).toBe(true);
+  });
+
+  it("throws on invalid card number", () => {
+    expect(() =>
+      validateDonationInput({
+        campaignId: "campaign-1",
+        amount: 250,
+        paymentCardholderName: "Jamie Donor",
+        paymentCardNumber: "4242 4242 4242 4241",
+        paymentExpiryMonth: 8,
+        paymentExpiryYear: 2099,
+        paymentCvc: "123"
+      })
+    ).toThrow("Card number must contain 12 to 19 valid digits.");
   });
 });

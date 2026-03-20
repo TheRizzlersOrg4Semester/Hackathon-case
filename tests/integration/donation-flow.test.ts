@@ -47,7 +47,13 @@ describe("createDonationWithSimulatedPayment", () => {
         donorName: "Internal Donor",
         donorEmail: "internal@example.com",
         blobColor: "#4DD2FF",
-        accessCodeMode: "CREATE_NEW"
+        accessCodeMode: "CREATE_NEW",
+        paymentCardholderName: "Internal Donor",
+        paymentCardNumber: "4242 4242 4242 4242",
+        paymentExpiryMonth: 8,
+        paymentExpiryYear: 2099,
+        paymentCvc: "123",
+        paymentBillingPostalCode: "2100"
       },
       {
         persistence,
@@ -67,6 +73,8 @@ describe("createDonationWithSimulatedPayment", () => {
 
     expect(result.receiptNumber).toBe("RCPT-20260317-654321");
     expect(result.paymentReference).toBe("SIM-1773743400000-654321");
+    expect(result.paymentCardBrand).toBe("Visa");
+    expect(result.paymentCardLast4).toBe("4242");
     expect(result.thankYouTier).toBe(ThankYouTier.PERSONAL);
     expect(result.supporterAccessCode).toMatch(/^PF-/);
     expect(result.supporterAccessCodeCreated).toBe(true);
@@ -88,7 +96,13 @@ describe("createDonationWithSimulatedPayment", () => {
             taxIdType: null,
             taxId: null,
             subscribedToUpdates: false,
-            blobColor: "#4DD2FF"
+            blobColor: "#4DD2FF",
+            paymentCardholderName: "Internal Donor",
+            paymentCardBrand: "Visa",
+            paymentCardLast4: "4242",
+            paymentExpiryMonth: 8,
+            paymentExpiryYear: 2099,
+            paymentBillingPostalCode: "2100"
           }
         },
         {
@@ -159,7 +173,12 @@ describe("createDonationWithSimulatedPayment", () => {
         isAnonymous: false,
         subscribedToUpdates: true,
         accessCodeMode: "USE_EXISTING",
-        supporterAccessCode: "pf-ab12-cd34"
+        supporterAccessCode: "pf-ab12-cd34",
+        paymentCardholderName: "Existing Donor",
+        paymentCardNumber: "5555 5555 5555 4444",
+        paymentExpiryMonth: 9,
+        paymentExpiryYear: 2099,
+        paymentCvc: "456"
       },
       { persistence }
     );
@@ -197,7 +216,12 @@ describe("createDonationWithSimulatedPayment", () => {
           campaignId: "missing-campaign",
           amount: 100,
           donationType: "ONE_TIME",
-          isAnonymous: false
+          isAnonymous: false,
+          paymentCardholderName: "Missing Campaign Donor",
+          paymentCardNumber: "4242 4242 4242 4242",
+          paymentExpiryMonth: 8,
+          paymentExpiryYear: 2099,
+          paymentCvc: "123"
         },
         { persistence }
       )
