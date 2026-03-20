@@ -296,6 +296,21 @@ export default async function AdminEditCampaignPage({ params }: AdminEditCampaig
             />
           </label>
 
+          <label className="flex items-center gap-3 rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-sm font-medium">
+            <input defaultChecked={campaign.celebrationEnabled} name="celebrationEnabled" type="checkbox" />
+            Enable celebration mode for this campaign
+          </label>
+
+          {campaign.completedAt ? (
+            <p className="text-sm text-amber-100">
+              Celebration completed:{" "}
+              {new Intl.DateTimeFormat("da-DK", {
+                dateStyle: "medium",
+                timeStyle: "short"
+              }).format(campaign.completedAt)}
+            </p>
+          ) : null}
+
           <AdminMilestoneFields
             milestones={campaign.milestones.map((milestone) => ({
               id: milestone.id,

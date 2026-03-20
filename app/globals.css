@@ -432,6 +432,17 @@ a {
     inset 0 10px 14px rgba(255, 255, 255, 0.15);
 }
 
+.donor-blob.is-celebrating::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 26% 22%, rgba(255, 248, 214, 0.12), rgba(255, 248, 214, 0)),
+    linear-gradient(150deg, rgba(246, 211, 101, 0.08), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
 .donor-blob::before {
   content: "";
   position: absolute;
@@ -588,6 +599,12 @@ a {
   .landing-how-it-works-track {
     animation: none;
   }
+
+  .celebration-hero-shimmer,
+  .celebration-particles span,
+  .donor-blob.is-celebrating {
+    animation: none;
+  }
 }
 
 .landing-hero {
@@ -617,6 +634,106 @@ a {
   background: linear-gradient(140deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.74));
   box-shadow: 0 18px 42px rgba(15, 23, 42, 0.35);
   backdrop-filter: blur(14px);
+}
+
+.celebration-mode .landing-panel,
+.celebration-mode .ui-campaign-card {
+  box-shadow:
+    0 18px 42px rgba(15, 23, 42, 0.35),
+    0 0 0 1px rgba(246, 211, 101, 0.06),
+    0 0 28px rgba(246, 211, 101, 0.06);
+}
+
+.celebration-banner {
+  border-color: rgba(246, 211, 101, 0.34);
+  background:
+    radial-gradient(circle at top right, rgba(251, 191, 36, 0.2), transparent 34%),
+    radial-gradient(circle at left center, rgba(253, 230, 138, 0.1), transparent 30%),
+    linear-gradient(140deg, rgba(46, 33, 7, 0.78), rgba(88, 62, 18, 0.46), rgba(19, 28, 46, 0.82));
+  box-shadow:
+    0 24px 52px rgba(2, 6, 23, 0.3),
+    0 0 40px rgba(246, 211, 101, 0.12);
+}
+
+.celebration-banner__glow {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(circle at 18% 30%, rgba(251, 191, 36, 0.16), transparent 34%),
+    radial-gradient(circle at 80% 10%, rgba(253, 230, 138, 0.12), transparent 28%);
+  filter: blur(28px);
+  pointer-events: none;
+}
+
+.celebration-banner__shimmer {
+  position: absolute;
+  inset: -30%;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0), rgba(253, 230, 138, 0.08), rgba(255, 255, 255, 0));
+  animation: celebration-shimmer 7s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.celebration-hero {
+  background:
+    radial-gradient(circle at 14% 18%, rgba(251, 191, 36, 0.26), transparent 30%),
+    radial-gradient(circle at 82% 16%, rgba(253, 230, 138, 0.2), transparent 28%),
+    radial-gradient(circle at 40% 80%, rgba(94, 234, 212, 0.16), transparent 34%),
+    linear-gradient(140deg, #101824 0%, #18263d 42%, #30220f 100%);
+}
+
+.celebration-hero-shimmer {
+  position: absolute;
+  inset: -40%;
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0) 28%,
+    rgba(253, 230, 138, 0.1) 46%,
+    rgba(255, 255, 255, 0) 60%
+  );
+  transform: translateX(-18%);
+  animation: celebration-shimmer 7s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.celebration-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.celebration-particles span {
+  position: absolute;
+  bottom: -1rem;
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(253, 230, 138, 0.8), rgba(253, 230, 138, 0));
+  opacity: 0.2;
+  animation: celebration-float 18s linear infinite;
+}
+
+.celebration-panel {
+  position: relative;
+}
+
+.celebration-map-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top center, rgba(246, 211, 101, 0.08), transparent 42%);
+  pointer-events: none;
+}
+
+.celebration-map-glimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(130deg, rgba(255, 255, 255, 0), rgba(253, 230, 138, 0.06), rgba(255, 255, 255, 0));
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.donor-blob.is-celebrating {
+  animation: celebration-blob-pulse 6.5s ease-in-out infinite;
 }
 
 .landing-how-it-works-scroller {
@@ -690,6 +807,46 @@ a {
 
   to {
     transform: translateX(calc(-50% - 0.5rem));
+  }
+}
+
+@keyframes celebration-shimmer {
+  0%,
+  100% {
+    transform: translateX(-18%) rotate(0.001deg);
+    opacity: 0.6;
+  }
+
+  50% {
+    transform: translateX(18%) rotate(0.001deg);
+    opacity: 1;
+  }
+}
+
+@keyframes celebration-float {
+  0% {
+    transform: translateY(0) scale(0.9);
+    opacity: 0;
+  }
+
+  12% {
+    opacity: 0.2;
+  }
+
+  100% {
+    transform: translateY(-18rem) scale(1.08);
+    opacity: 0;
+  }
+}
+
+@keyframes celebration-blob-pulse {
+  0%,
+  100% {
+    filter: brightness(1) saturate(1);
+  }
+
+  50% {
+    filter: brightness(1.04) saturate(1.05);
   }
 }
 

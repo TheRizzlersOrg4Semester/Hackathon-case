@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { DonationType, EmailStatus, Prisma, ThankYouTier } from "@prisma/client";
+import { describe, expect, it, vi } from "vitest";
+import { CampaignStatus, DonationType, EmailStatus, Prisma, ThankYouTier } from "@prisma/client";
 import { createDonationWithSimulatedPayment, type DonationFlowPersistence } from "../../lib/services/donations";
 
 describe("createDonationWithSimulatedPayment", () => {
@@ -10,7 +10,14 @@ describe("createDonationWithSimulatedPayment", () => {
     const persistence: DonationFlowPersistence = {
       async getPublishedCampaignById() {
         calls.push({ op: "getPublishedCampaignById", payload: null });
-        return { id: "campaign-1", title: "Campaign One", summary: "Help launch the campaign." };
+        return {
+          id: "campaign-1",
+          title: "Campaign One",
+          summary: "Help launch the campaign.",
+          goalAmount: new Prisma.Decimal(250),
+          status: CampaignStatus.PUBLISHED,
+          completedAt: null
+        };
       },
       async findDonationAccessByCode(code) {
         calls.push({ op: "findDonationAccessByCode", payload: code });
@@ -35,6 +42,12 @@ describe("createDonationWithSimulatedPayment", () => {
       },
       async createThankYouAction(data) {
         calls.push({ op: "createThankYouAction", payload: data });
+      },
+      async markCampaignCompleted(campaignId, completedAt) {
+        calls.push({ op: "markCampaignCompleted", payload: { campaignId, completedAt } });
+      },
+      async getCampaignRaisedAmount() {
+        return new Prisma.Decimal(250);
       }
     };
 
@@ -120,6 +133,13 @@ describe("createDonationWithSimulatedPayment", () => {
             tier: ThankYouTier.PERSONAL,
             emailStatus: EmailStatus.PENDING
           }
+        },
+        {
+          op: "markCampaignCompleted",
+          payload: {
+            campaignId: "campaign-1",
+            completedAt: new Date("2026-03-17T10:30:00.000Z")
+          }
         }
       ])
     );
@@ -135,7 +155,14 @@ describe("createDonationWithSimulatedPayment", () => {
 
     const persistence: DonationFlowPersistence = {
       async getPublishedCampaignById() {
-        return { id: "campaign-1", title: "Campaign One", summary: "Help launch the campaign." };
+        return {
+          id: "campaign-1",
+          title: "Campaign One",
+          summary: "Help launch the campaign.",
+          goalAmount: new Prisma.Decimal(500),
+          status: CampaignStatus.PUBLISHED,
+          completedAt: null
+        };
       },
       async findDonationAccessByCode(code) {
         if (code === "PF-AB12-CD34") {
@@ -162,6 +189,12 @@ describe("createDonationWithSimulatedPayment", () => {
       },
       async createThankYouAction() {
         return undefined;
+      },
+      async markCampaignCompleted() {
+        return undefined;
+      },
+      async getCampaignRaisedAmount() {
+        return new Prisma.Decimal(100);
       }
     };
 
@@ -207,6 +240,12 @@ describe("createDonationWithSimulatedPayment", () => {
       },
       async createThankYouAction() {
         throw new Error("should not run");
+      },
+      async markCampaignCompleted() {
+        throw new Error("should not run");
+      },
+      async getCampaignRaisedAmount() {
+        throw new Error("should not run");
       }
     };
 
@@ -226,5 +265,65 @@ describe("createDonationWithSimulatedPayment", () => {
         { persistence }
       )
     ).rejects.toThrow("Campaign is not available for donations.");
+  });
+
+  it("does not overwrite completedAt when a campaign is already completed", async () => {
+    const markCampaignCompleted = vi.fn(async () => undefined);
+
+    const persistence: DonationFlowPersistence = {
+      async getPublishedCampaignById() {
+        return {
+          id: "campaign-1",
+          title: "Campaign One",
+          summary: "Help launch the campaign.",
+          goalAmount: new Prisma.Decimal(100),
+          status: CampaignStatus.PUBLISHED,
+          completedAt: new Date("2026-03-16T09:00:00.000Z")
+        };
+      },
+      async findDonationAccessByCode() {
+        return null;
+      },
+      async createDonationAccess(accessCode) {
+        return {
+          id: "access-1",
+          accessCode
+        };
+      },
+      async createDonation(data) {
+        return {
+          id: "donation-1",
+          amount: new Prisma.Decimal(data.amount)
+        };
+      },
+      async createDonationReceipt() {
+        return undefined;
+      },
+      async createThankYouAction() {
+        return undefined;
+      },
+      markCampaignCompleted,
+      async getCampaignRaisedAmount() {
+        return new Prisma.Decimal(140);
+      }
+    };
+
+    await createDonationWithSimulatedPayment(
+      {
+        campaignId: "campaign-1",
+        amount: 40,
+        donationType: "ONE_TIME",
+        isAnonymous: false,
+        accessCodeMode: "CREATE_NEW",
+        paymentCardholderName: "Repeat Donor",
+        paymentCardNumber: "4242 4242 4242 4242",
+        paymentExpiryMonth: 8,
+        paymentExpiryYear: 2099,
+        paymentCvc: "123"
+      },
+      { persistence, randomFloat: () => 0 }
+    );
+
+    expect(markCampaignCompleted).not.toHaveBeenCalled();
   });
 });

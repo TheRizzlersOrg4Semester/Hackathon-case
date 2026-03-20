@@ -2,6 +2,7 @@ import Link from "next/link";
 import { GlobalDonationBlobMap } from "@/components/global-donation-blob-map";
 import { buildLandingStats, pickFeaturedCampaigns, type LandingCampaign, type LandingDonation } from "@/lib/domain/landing";
 import { getLandingCampaignData } from "@/lib/persistence/campaign-queries";
+import { getActiveCelebrationCampaign } from "@/lib/services/celebrations";
 
 const howPulseFundWorksItems = [
   {
@@ -37,7 +38,7 @@ function formatCurrency(amount: number): string {
 }
 
 export default async function HomePage() {
-  const rawCampaigns = await getLandingCampaignData();
+  const [rawCampaigns, celebrationCampaign] = await Promise.all([getLandingCampaignData(), getActiveCelebrationCampaign()]);
 
   const campaigns: LandingCampaign[] = rawCampaigns.map((campaign) => {
     const raisedAmount = campaign.donations.reduce((sum, donation) => sum + toAmount(donation.amount), 0);
@@ -77,22 +78,71 @@ export default async function HomePage() {
   const featuredCampaigns = pickFeaturedCampaigns(campaigns);
 
   return (
-    <div className="ui-page-stack">
-      <section className="landing-hero relative overflow-hidden rounded-[2rem] border border-white/20 px-6 py-12 md:px-10 md:py-16">
+    <div className={`ui-page-stack ${celebrationCampaign ? "celebration-mode" : ""}`}>
+      {celebrationCampaign ? (
+        <section className="celebration-banner relative overflow-hidden rounded-[1.75rem] border px-6 py-6 md:px-8 md:py-7">
+          <div className="celebration-banner__glow" />
+          <div className="celebration-banner__shimmer" />
+          <div className="relative flex flex-wrap items-end justify-between gap-5">
+            <div className="space-y-3">
+              <p className="type-meta text-amber-100/80">Campaign Success Celebration</p>
+              <h2 className="type-card text-white">{celebrationCampaign.title}</h2>
+              <p className="type-body-sm max-w-3xl text-amber-50/90">
+                Community powered success. This campaign reached full funding and is now live as a platform-wide success state.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link className="ui-button-primary" href={`/campaigns/${celebrationCampaign.id}`}>
+                  View campaign
+                </Link>
+                <Link className="ui-button-secondary" href="/campaigns">
+                  Explore more campaigns
+                </Link>
+              </div>
+            </div>
+            <div className="space-y-1 text-right">
+              <p className="type-meta text-amber-100/80">Raised</p>
+              <p className="type-section">{formatCurrency(celebrationCampaign.raisedAmount)}</p>
+              <p className="type-body-sm text-amber-50/85">Goal {formatCurrency(celebrationCampaign.goalAmount)}</p>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section className={`landing-hero relative overflow-hidden rounded-[2rem] border border-white/20 px-6 py-12 md:px-10 md:py-16 ${celebrationCampaign ? "celebration-hero" : ""}`}>
         <div className="landing-hero-glow" />
+        {celebrationCampaign ? (
+          <>
+            <div className="celebration-hero-shimmer" />
+            <div className="celebration-particles" aria-hidden="true">
+              {Array.from({ length: 12 }, (_, index) => (
+                <span
+                  key={index}
+                  style={{
+                    left: `${6 + index * 8}%`,
+                    animationDelay: `${index * 0.9}s`,
+                    animationDuration: `${16 + (index % 4) * 1.5}s`
+                  }}
+                />
+              ))}
+            </div>
+          </>
+        ) : null}
         <div className="relative grid gap-8 md:grid-cols-[1.2fr_0.8fr] md:items-center">
           <div className="space-y-6">
             <p className="inline-flex rounded-full border border-white/30 bg-white/15 px-4 py-2 type-meta text-secondary">
-              PulseFund Live
+              {celebrationCampaign ? "PulseFund Success State" : "PulseFund Live"}
             </p>
-            <h1 className="type-hero max-w-3xl">Fund missions with living momentum.</h1>
+            <h1 className="type-hero max-w-3xl">
+              {celebrationCampaign ? "A mission was fully funded. The whole platform feels it." : "Fund missions with living momentum."}
+            </h1>
             <p className="type-body max-w-2xl">
-              PulseFund transforms every donation into visible campaign energy. Watch support grow in real time through
-              interactive donor blobs and transparent progress tracking.
+              {celebrationCampaign
+                ? `Support just carried ${celebrationCampaign.title} across the line. Explore the momentum, see the outcome, and follow the next campaign ready to move.`
+                : "PulseFund transforms every donation into visible campaign energy. Watch support grow in real time through interactive donor blobs and transparent progress tracking."}
             </p>
             <div className="flex flex-wrap gap-4">
-              <Link className="ui-button-primary" href="/campaigns">
-                Start exploring campaigns
+              <Link className="ui-button-primary" href={celebrationCampaign ? `/campaigns/${celebrationCampaign.id}` : "/campaigns"}>
+                {celebrationCampaign ? "Open funded campaign" : "Start exploring campaigns"}
               </Link>
               <Link className="ui-button-secondary" href="/my-donations">
                 View donor history
@@ -110,13 +160,13 @@ export default async function HomePage() {
               <p>Active campaigns: {stats.activeCampaigns}</p>
               <p>Visible donors: {stats.donorCount}</p>
               <p>Recurring gifts: {stats.recurringDonations}</p>
-              <p>Tracked donations: {donations.length}</p>
+              <p>{celebrationCampaign ? "Success mode: active" : `Tracked donations: ${donations.length}`}</p>
             </div>
           </div>
         </div>
       </section>
 
-      <GlobalDonationBlobMap donations={donations} />
+      <GlobalDonationBlobMap celebrationActive={Boolean(celebrationCampaign)} donations={donations} />
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[

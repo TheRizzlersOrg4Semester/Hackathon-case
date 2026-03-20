@@ -49,13 +49,26 @@ export async function getAdminCategories() {
 export async function getAdminCampaigns() {
   return prisma.campaign.findMany({
     orderBy: [{ createdAt: "desc" }],
-    include: {
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      summary: true,
+      description: true,
+      brandImageUrl: true,
+      goalAmount: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      publishedAt: true,
       category: {
         select: {
           id: true,
           name: true
         }
       },
+      celebrationEnabled: true,
+      completedAt: true,
       _count: {
         select: {
           donations: true
@@ -75,13 +88,27 @@ export async function getAdminCampaignById(id: string) {
     where: {
       id
     },
-    include: {
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      summary: true,
+      description: true,
+      brandImageUrl: true,
+      goalAmount: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      publishedAt: true,
+      categoryId: true,
       category: {
         select: {
           id: true,
           name: true
         }
       },
+      celebrationEnabled: true,
+      completedAt: true,
       milestones: {
         orderBy: [{ displayOrder: "asc" }, { targetAmount: "asc" }],
         select: {

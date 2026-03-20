@@ -157,11 +157,12 @@ async function main() {
         slug: "neighborhood-learning-corner",
         summary: "Build a shared learning space with books and laptops.",
         description:
-          "This campaign is newly published and currently has no donations, which helps demo empty-state behavior.",
+          "This campaign recently crossed the finish line and is ideal for demoing the global success celebration state.",
         brandImageUrl: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=200&q=80",
-        goalAmount: 45000,
+        goalAmount: 500,
         status: CampaignStatus.PUBLISHED,
         publishedAt: new Date("2026-03-16T09:00:00Z"),
+        completedAt: new Date("2026-03-17T08:35:00Z"),
         categoryId: education.id
       }
     })

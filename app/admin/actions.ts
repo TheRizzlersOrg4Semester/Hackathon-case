@@ -40,6 +40,7 @@ function readCampaignFormData(formData: FormData) {
     summary: String(formData.get("summary") ?? ""),
     description: String(formData.get("description") ?? ""),
     goalAmount: Number(formData.get("goalAmount") ?? 0),
+    celebrationEnabled: formData.get("celebrationEnabled") === "on",
     brandImageUrl: String(formData.get("brandImageUrl") ?? ""),
     milestones
   };

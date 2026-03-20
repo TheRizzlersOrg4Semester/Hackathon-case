@@ -73,23 +73,28 @@ export function resolveBlobColor(input: string | null | undefined, index: number
   return DEFAULT_BLOB_PALETTE[index % DEFAULT_BLOB_PALETTE.length];
 }
 
-export function buildBlobSurfaceBackground(hex: string): string {
+export function buildBlobSurfaceBackground(hex: string, celebrationActive = false): string {
   const base = normalizeHex(hex);
   const highlight = lighten(base, 0.58);
   const mid = lighten(base, 0.2);
+  const celebrationGlow = celebrationActive
+    ? `, radial-gradient(circle at 72% 26%, ${rgba("#F6D365", 0.28)} 0%, rgba(246, 211, 101, 0) 42%), linear-gradient(145deg, ${rgba("#F6D365", 0.08)}, rgba(255, 255, 255, 0))`
+    : "";
 
-  return `radial-gradient(circle at 28% 22%, ${highlight} 0%, ${mid} 34%, ${base} 68%, ${rgba(base, 0.92)} 100%)`;
+  return `radial-gradient(circle at 28% 22%, ${highlight} 0%, ${mid} 34%, ${base} 68%, ${rgba(base, 0.92)} 100%)${celebrationGlow}`;
 }
 
-export function buildBlobSurfaceShadow(hex: string, isSelected: boolean): string {
+export function buildBlobSurfaceShadow(hex: string, isSelected: boolean, celebrationActive = false): string {
   const base = normalizeHex(hex);
-  const glow = rgba(base, isSelected ? 0.58 : 0.35);
+  const glow = rgba(base, isSelected ? 0.62 : celebrationActive ? 0.48 : 0.35);
   const edge = rgba(base, 0.22);
+  const celebrationHalo = celebrationActive ? `0 0 ${isSelected ? "34px" : "22px"} ${rgba("#F6D365", isSelected ? 0.32 : 0.2)}` : null;
 
   return [
     `0 12px 30px ${rgba("#030712", 0.48)}`,
     `0 0 0 1px ${edge}`,
     `0 0 ${isSelected ? "22px" : "14px"} ${glow}`,
+    ...(celebrationHalo ? [celebrationHalo] : []),
     `inset 0 -12px 18px ${rgba("#020617", 0.18)}`,
     `inset 0 10px 14px rgba(255, 255, 255, 0.16)`
   ].join(", ");

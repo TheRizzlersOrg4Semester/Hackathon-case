@@ -17,6 +17,7 @@ import { mapGlobalDonationBlobs, type LandingDonation } from "@/lib/domain/landi
 
 type GlobalDonationBlobMapProps = {
   donations: LandingDonation[];
+  celebrationActive?: boolean;
 };
 
 type DragState = {
@@ -65,7 +66,7 @@ function formatTimestamp(date: Date): string {
   }).format(date);
 }
 
-export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps) {
+export function GlobalDonationBlobMap({ donations, celebrationActive = false }: GlobalDonationBlobMapProps) {
   const allBlobs = useMemo(() => mapGlobalDonationBlobs(donations), [donations]);
   const blobs = useMemo(() => allBlobs.slice(0, MAX_GLOBAL_BLOBS), [allBlobs]);
   const campaignIdentityItems = useMemo(() => {
@@ -358,7 +359,7 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
   }
 
   return (
-    <section className="landing-panel ui-section-stack">
+    <section className={`landing-panel ui-section-stack ${celebrationActive ? "celebration-panel" : ""}`}>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-2">
           <h2 className="type-section text-white">Global donation blob map</h2>
@@ -392,9 +393,10 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
         </Link>
       </div>
 
-      <div className="relative overflow-hidden rounded-3xl border border-white/20 bg-slate-950/45 p-4 md:p-6">
+      <div className={`relative overflow-hidden rounded-3xl border border-white/20 bg-slate-950/45 p-4 md:p-6 ${celebrationActive ? "celebration-map-shell" : ""}`}>
         <div className="landing-map-glow" />
         <div className="landing-map-aurora" />
+        {celebrationActive ? <div aria-hidden="true" className="celebration-map-glimmer" /> : null}
         <div className="landing-map-grid" />
         <div className="landing-map-noise" />
         <div className="landing-map-vignette" />
@@ -435,7 +437,7 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
               <button
                 aria-label={`${blob.donorDisplayName}, ${formatCurrency(blob.amount)}, ${formatDonationType(blob.donationType)}, ${blob.campaignTitle}`}
                 aria-pressed={selectedId === blob.id}
-                className={`donor-blob ${blob.colorClass} ${selectedId === blob.id ? "is-selected" : ""} ${isDragging ? "is-dragging" : ""}`}
+                className={`donor-blob ${celebrationActive ? "is-celebrating" : ""} ${blob.colorClass} ${selectedId === blob.id ? "is-selected" : ""} ${isDragging ? "is-dragging" : ""}`}
                 key={blob.id}
                 onBlur={() => {
                   if (!selectedId) {
@@ -496,8 +498,8 @@ export function GlobalDonationBlobMap({ donations }: GlobalDonationBlobMapProps)
                   borderRadius: render?.borderRadius,
                   width: `${blob.sizePx}px`,
                   height: `${blob.sizePx}px`,
-                  background: buildBlobSurfaceBackground(blob.resolvedColorHex),
-                  boxShadow: buildBlobSurfaceShadow(blob.resolvedColorHex, selectedId === blob.id)
+                  background: buildBlobSurfaceBackground(blob.resolvedColorHex, celebrationActive),
+                  boxShadow: buildBlobSurfaceShadow(blob.resolvedColorHex, selectedId === blob.id, celebrationActive)
                 }}
                 type="button"
               >

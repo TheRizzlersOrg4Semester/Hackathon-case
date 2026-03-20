@@ -50,10 +50,12 @@ model Campaign {
   description   String?
   brandImageUrl String?
   goalAmount    Decimal        @db.Decimal(12, 2)
+  celebrationEnabled Boolean   @default(true)
   status        CampaignStatus @default(DRAFT)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   publishedAt   DateTime?
+  completedAt   DateTime?
   closedAt      DateTime?
 
   categoryId String?

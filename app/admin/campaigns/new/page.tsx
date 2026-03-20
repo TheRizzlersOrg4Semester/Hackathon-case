@@ -57,6 +57,11 @@ export default async function AdminNewCampaignPage() {
           <input className="w-full rounded-lg border border-white/30 bg-white/90 px-3 py-2 text-slate-900" min={1} name="goalAmount" required step="1" type="number" />
         </label>
 
+        <label className="flex items-center gap-3 rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-sm font-medium">
+          <input defaultChecked name="celebrationEnabled" type="checkbox" />
+          Enable celebration mode for this campaign
+        </label>
+
         <AdminMilestoneFields />
 
         <div className="flex gap-3">

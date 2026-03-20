@@ -15,6 +15,7 @@ const campaignInputSchema = z.object({
   summary: z.string().trim().min(10).max(240),
   description: z.string().trim().min(20).max(6000),
   goalAmount: z.coerce.number().positive().max(100000000),
+  celebrationEnabled: z.coerce.boolean().default(true),
   brandImageUrl: z
     .string()
     .trim()
@@ -55,6 +56,7 @@ export type CampaignAdminPersistence = {
     summary: string;
     description: string;
     goalAmount: number;
+    celebrationEnabled: boolean;
     categoryId: string | null;
     brandImageUrl: string | null;
     milestones: Array<{
@@ -72,6 +74,7 @@ export type CampaignAdminPersistence = {
       summary: string;
       description: string;
       goalAmount: number;
+      celebrationEnabled: boolean;
       categoryId: string | null;
       brandImageUrl: string | null;
       milestones: Array<{
@@ -149,6 +152,7 @@ function getDefaultAdminPersistence(tx: Prisma.TransactionClient): CampaignAdmin
           summary: data.summary,
           description: data.description,
           goalAmount: data.goalAmount,
+          celebrationEnabled: data.celebrationEnabled,
           categoryId: data.categoryId,
           brandImageUrl: data.brandImageUrl,
           status: CampaignStatus.DRAFT,
@@ -177,6 +181,7 @@ function getDefaultAdminPersistence(tx: Prisma.TransactionClient): CampaignAdmin
           summary: data.summary,
           description: data.description,
           goalAmount: data.goalAmount,
+          celebrationEnabled: data.celebrationEnabled,
           categoryId: data.categoryId,
           brandImageUrl: data.brandImageUrl,
           milestones: data.milestones.length
@@ -232,6 +237,7 @@ export async function createCampaignByAdmin(
       summary: validated.summary,
       description: validated.description,
       goalAmount: validated.goalAmount,
+      celebrationEnabled: validated.celebrationEnabled,
       categoryId: normalizeOptionalString(validated.categoryId),
       brandImageUrl: normalizeOptionalString(validated.brandImageUrl),
       milestones: normalizeMilestones(validated.milestones)
@@ -265,6 +271,7 @@ export async function updateCampaignByAdmin(
       summary: validated.summary,
       description: validated.description,
       goalAmount: validated.goalAmount,
+      celebrationEnabled: validated.celebrationEnabled,
       categoryId: normalizeOptionalString(validated.categoryId),
       brandImageUrl: normalizeOptionalString(validated.brandImageUrl),
       milestones: normalizeMilestones(validated.milestones)

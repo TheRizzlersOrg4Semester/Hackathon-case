@@ -79,6 +79,9 @@ type PublishedCampaignRef = {
   id: string;
   title: string;
   summary: string | null;
+  goalAmount: Prisma.Decimal;
+  status: CampaignStatus;
+  completedAt: Date | null;
 };
 
 type DonationAccessRef = {
@@ -134,6 +137,8 @@ export type DonationFlowPersistence = {
     tier: ThankYouTier;
     emailStatus: EmailStatus;
   }) => Promise<void>;
+  markCampaignCompleted: (campaignId: string, completedAt: Date) => Promise<void>;
+  getCampaignRaisedAmount: (campaignId: string) => Promise<Prisma.Decimal>;
 };
 
 function normalizeOptionalString(value?: string): string | null {
@@ -335,7 +340,10 @@ function getDefaultDonationPersistence(tx: Prisma.TransactionClient): DonationFl
         select: {
           id: true,
           title: true,
-          summary: true
+          summary: true,
+          goalAmount: true,
+          status: true,
+          completedAt: true
         }
       });
     },
@@ -406,6 +414,30 @@ function getDefaultDonationPersistence(tx: Prisma.TransactionClient): DonationFl
           emailStatus: data.emailStatus
         }
       });
+    },
+    async markCampaignCompleted(campaignId, completedAt) {
+      await tx.campaign.updateMany({
+        where: {
+          id: campaignId,
+          status: CampaignStatus.PUBLISHED,
+          completedAt: null
+        },
+        data: {
+          completedAt
+        }
+      });
+    },
+    async getCampaignRaisedAmount(campaignId) {
+      const aggregate = await tx.donation.aggregate({
+        where: {
+          campaignId
+        },
+        _sum: {
+          amount: true
+        }
+      });
+
+      return aggregate._sum.amount ?? new Prisma.Decimal(0);
     }
   };
 }
@@ -525,6 +557,13 @@ export async function createDonationWithSimulatedPayment(
       tier,
       emailStatus: EmailStatus.PENDING
     });
+
+    const raisedAmount = Number(await persistence.getCampaignRaisedAmount(validated.campaignId));
+    const goalAmount = Number(campaign.goalAmount);
+
+    if (campaign.status === CampaignStatus.PUBLISHED && !campaign.completedAt && raisedAmount >= goalAmount) {
+      await persistence.markCampaignCompleted(validated.campaignId, now);
+    }
 
     return {
       donationId: donation.id,

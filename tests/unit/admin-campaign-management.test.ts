@@ -129,6 +129,7 @@ describe("campaign milestone management", () => {
         summary: "Help expand our local garden.",
         description: "Funding adds raised beds, a tool shed, and volunteer workshops for the neighborhood.",
         goalAmount: 15000,
+        celebrationEnabled: true,
         milestones: [
           {
             title: "Tool shed",
@@ -149,6 +150,7 @@ describe("campaign milestone management", () => {
 
     expect(createCampaign).toHaveBeenCalledWith(
       expect.objectContaining({
+        celebrationEnabled: true,
         milestones: [
           {
             title: "Raised beds",
@@ -194,6 +196,7 @@ describe("campaign milestone management", () => {
         summary: "Help expand our local garden.",
         description: "Funding adds raised beds, a tool shed, and volunteer workshops for the neighborhood.",
         goalAmount: 15000,
+        celebrationEnabled: false,
         milestones: [
           {
             id: "m-1",
@@ -210,6 +213,7 @@ describe("campaign milestone management", () => {
     expect(updateCampaign).toHaveBeenCalledWith(
       "campaign-1",
       expect.objectContaining({
+        celebrationEnabled: false,
         milestones: [
           {
             title: "Raised beds",
@@ -220,5 +224,38 @@ describe("campaign milestone management", () => {
         ]
       })
     );
+  });
+
+  it("keeps celebration enabled by default when omitted", async () => {
+    const createCampaign = vi.fn(async () => ({ id: "campaign-1" }));
+
+    const persistence: CampaignAdminPersistence = {
+      async getCampaignStatusById() {
+        throw new Error("not used");
+      },
+      createCampaign,
+      async updateCampaign() {
+        throw new Error("not used");
+      },
+      async updateCampaignStatus() {
+        throw new Error("not used");
+      },
+      async deleteDonationById() {
+        throw new Error("not used");
+      }
+    };
+
+    await createCampaignByAdmin(
+      {
+        title: "Celebration Default",
+        slug: "celebration-default",
+        summary: "Summary with enough detail.",
+        description: "Description with enough detail to satisfy validation rules for admin campaign creation.",
+        goalAmount: 2000
+      },
+      { persistence }
+    );
+
+    expect(createCampaign).toHaveBeenCalledWith(expect.objectContaining({ celebrationEnabled: true }));
   });
 });
