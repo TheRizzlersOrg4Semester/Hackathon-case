@@ -49,7 +49,7 @@ You can also think of it as this flow:
 
 1. Environment variables define the database and app configuration.
 2. PostgreSQL starts locally in Docker on `127.0.0.1:54329`.
-3. Prisma generates the client from [`prisma/schema.prisma`](/c:/Users/mathi/Desktop/vibe-hack case/Hackathon-case/prisma/schema.prisma).
+3. Prisma generates the client from [`prisma/schema.prisma`]
 4. Prisma migrations create and update the database tables.
 5. Seed data populates the demo content.
 6. Next.js starts the web app for local development.
