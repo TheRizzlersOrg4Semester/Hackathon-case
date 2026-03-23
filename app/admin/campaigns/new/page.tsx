@@ -3,6 +3,8 @@ import { createCampaignAction } from "@/app/admin/actions";
 import { AdminMilestoneFields } from "@/components/admin-milestone-fields";
 import { getAdminCategories } from "@/lib/persistence/admin-queries";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminNewCampaignPage() {
   const categories = await getAdminCategories();
 

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { calculateCampaignProgress } from "@/lib/domain/campaigns";
 import { getPublishedCampaigns } from "@/lib/persistence/campaign-queries";
 
+export const dynamic = "force-dynamic";
+
 type CampaignListPageProps = {
   searchParams?: Promise<{ q?: string }>;
 };

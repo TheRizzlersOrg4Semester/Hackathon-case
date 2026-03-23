@@ -3,6 +3,8 @@ import { DonationForm } from "@/components/donation-form";
 import { getPublishedCampaignDonationTarget } from "@/lib/persistence/campaign-queries";
 import { submitDonationAction } from "./actions";
 
+export const dynamic = "force-dynamic";
+
 type DonationPageProps = {
   params: Promise<{ campaignId: string }>;
 };

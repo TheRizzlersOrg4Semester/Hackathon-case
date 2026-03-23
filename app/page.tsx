@@ -4,6 +4,8 @@ import { buildLandingStats, pickFeaturedCampaigns, type LandingCampaign, type La
 import { getLandingCampaignData } from "@/lib/persistence/campaign-queries";
 import { getActiveCelebrationCampaign } from "@/lib/services/celebrations";
 
+export const dynamic = "force-dynamic";
+
 const howPulseFundWorksItems = [
   {
     title: "Discover live campaigns",

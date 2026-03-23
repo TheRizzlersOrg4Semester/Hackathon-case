@@ -5,6 +5,8 @@ import { AnalyticsTimeSeriesChart } from "@/components/analytics-time-series-cha
 import { getPlatformAnalyticsSummary } from "@/lib/services/analytics";
 import { getAnnualTaxReport } from "@/lib/services/tax-reporting";
 
+export const dynamic = "force-dynamic";
+
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("da-DK", {
     style: "currency",

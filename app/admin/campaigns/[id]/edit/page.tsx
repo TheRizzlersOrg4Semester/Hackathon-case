@@ -13,6 +13,8 @@ import {
 import { getAdminCampaignById, getAdminCategories } from "@/lib/persistence/admin-queries";
 import { getCampaignAnalytics } from "@/lib/services/analytics";
 
+export const dynamic = "force-dynamic";
+
 type AdminEditCampaignPageProps = {
   params: Promise<{ id: string }>;
 };

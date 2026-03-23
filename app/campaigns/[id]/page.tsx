@@ -5,6 +5,8 @@ import { DonorBlobVisualization } from "@/components/donor-blob-visualization";
 import { calculateCampaignProgress, getPublicDonorDisplayName } from "@/lib/domain/campaigns";
 import { getPublishedCampaignById } from "@/lib/persistence/campaign-queries";
 
+export const dynamic = "force-dynamic";
+
 type CampaignDetailPageProps = {
   params: Promise<{ id: string }>;
 };

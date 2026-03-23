@@ -42,6 +42,18 @@ The current app includes:
 9. Start the app:
    `npm run dev`
 
+## Docker Setup
+
+1. Build and start the app with Postgres:
+   `docker compose up --build`
+2. Open `http://localhost`
+
+Notes:
+
+- Nginx listens on port `80` and proxies requests to the app container.
+- The app container runs `prisma migrate deploy` and `node prisma/seed.js` on startup.
+- Because seeding runs on every app start, demo data is reset each time the app container restarts.
+
 ## Prisma Workflow
 
 - Regenerate client after schema changes:

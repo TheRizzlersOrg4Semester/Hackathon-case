@@ -2,6 +2,8 @@ import Link from "next/link";
 import { reviewCampaignRequestAction } from "@/app/admin/actions";
 import { getAdminCampaignRequests } from "@/lib/persistence/admin-queries";
 
+export const dynamic = "force-dynamic";
+
 function toAmount(value: unknown): number {
   return Number(value);
 }
